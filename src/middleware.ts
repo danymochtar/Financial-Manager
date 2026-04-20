@@ -1,10 +1,13 @@
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
+import { authConfig } from "@/lib/auth.config";
 
 const PUBLIC_PATHS = ["/login", "/register"];
 const PUBLIC_API_PREFIXES = ["/api/auth", "/api/register"];
 
-export default auth((req) => {
+// Edge-safe middleware: constructs a NextAuth instance with the providers
+// list empty (from authConfig). No bcrypt / Prisma in the edge bundle.
+export default NextAuth(authConfig).auth((req) => {
   const { pathname } = req.nextUrl;
   const isPublicPage = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const isPublicApi = PUBLIC_API_PREFIXES.some((p) => pathname.startsWith(p));

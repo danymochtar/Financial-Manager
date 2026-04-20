@@ -1,17 +1,9 @@
-import NextAuth, { type DefaultSession } from "next-auth";
+import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/db";
 import { z } from "zod";
-
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      primaryCurrency: string;
-    } & DefaultSession["user"];
-  }
-}
+import { prisma } from "@/lib/db";
+import { authConfig } from "@/lib/auth.config";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -19,9 +11,7 @@ const credentialsSchema = z.object({
 });
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
-  trustHost: true,
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -44,25 +34,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    jwt: async ({ token, user, trigger, session }) => {
-      if (user) {
-        token.id = user.id;
-        token.primaryCurrency = (user as { primaryCurrency?: string }).primaryCurrency ?? "IDR";
-      }
-      if (trigger === "update" && session?.user?.primaryCurrency) {
-        token.primaryCurrency = session.user.primaryCurrency;
-      }
-      return token;
-    },
-    session: async ({ session, token }) => {
-      if (session.user) {
-        session.user.id = (token.id as string) ?? (token.sub as string);
-        session.user.primaryCurrency = (token.primaryCurrency as string) ?? "IDR";
-      }
-      return session;
-    },
-  },
 });
 
 export async function requireUser() {

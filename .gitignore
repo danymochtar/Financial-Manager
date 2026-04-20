@@ -17,9 +17,5 @@ npm-debug.log*
 .vscode
 .idea
 
-# local storage (receipt images, SQLite db)
+# local storage (dev-only fallback)
 /storage
-/prisma/dev.db
-/prisma/dev.db-journal
-/prisma/*.db
-/prisma/*.db-journal

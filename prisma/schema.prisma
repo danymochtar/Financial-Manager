@@ -1,14 +1,14 @@
-// Financial Manager data model
-// SQLite doesn't support native Decimal, so Prisma maps Decimal -> DECIMAL text.
-// We use string-serialized decimals via Prisma's Decimal type.
+// Financial Manager data model — PostgreSQL (Neon on Vercel).
+// Decimal maps to Postgres NUMERIC natively.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {

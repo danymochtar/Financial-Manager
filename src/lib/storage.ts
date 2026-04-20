@@ -1,12 +1,16 @@
-import { createHash, randomBytes } from "node:crypto";
-import fs from "node:fs/promises";
-import path from "node:path";
+import { del, put } from "@vercel/blob";
+import { randomBytes } from "node:crypto";
 
-const STORAGE_DIR = process.env.STORAGE_DIR
-  ? path.resolve(process.env.STORAGE_DIR)
-  : path.resolve(process.cwd(), "storage");
+export const ALLOWED_IMAGE_MIMES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+];
 
-const RECEIPTS_DIR = path.join(STORAGE_DIR, "receipts");
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 function extFromMime(mime: string): string {
   const map: Record<string, string> = {
@@ -20,44 +24,45 @@ function extFromMime(mime: string): string {
   return map[mime.toLowerCase()] ?? ".bin";
 }
 
-export const ALLOWED_IMAGE_MIMES = [
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-  "image/heif",
-];
-
-export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-
+/**
+ * Upload receipt image to Vercel Blob. Returns the blob URL; we store that
+ * URL as `Receipt.imagePath`. The filename is a random hex so URLs aren't
+ * guessable even though Vercel Blob is public-by-default.
+ *
+ * The authenticated proxy at `/api/receipts/[id]/image` is the only place
+ * we expose the URL to clients, so the blob is never linked publicly.
+ */
 export async function saveReceiptImage(
   userId: string,
   mimeType: string,
   buffer: Buffer
-): Promise<{ relPath: string; absPath: string; size: number; hash: string }> {
-  const userDir = path.join(RECEIPTS_DIR, userId);
-  await fs.mkdir(userDir, { recursive: true });
+): Promise<{ relPath: string; size: number }> {
   const id = randomBytes(16).toString("hex");
   const ext = extFromMime(mimeType);
-  const filename = `${id}${ext}`;
-  const absPath = path.join(userDir, filename);
-  await fs.writeFile(absPath, buffer);
-  const relPath = path.relative(STORAGE_DIR, absPath);
-  const hash = createHash("sha256").update(buffer).digest("hex");
-  return { relPath, absPath, size: buffer.length, hash };
+  const key = `receipts/${userId}/${id}${ext}`;
+  const blob = await put(key, buffer, {
+    access: "public",
+    contentType: mimeType,
+    addRandomSuffix: false,
+  });
+  return { relPath: blob.url, size: buffer.length };
 }
 
-export async function readReceiptImage(relPath: string): Promise<Buffer> {
-  const resolved = path.resolve(STORAGE_DIR, relPath);
-  if (!resolved.startsWith(STORAGE_DIR)) {
-    throw new Error("Invalid storage path (traversal blocked)");
+/**
+ * Fetch a stored receipt image as a Buffer. We validate that the URL belongs
+ * to our Vercel Blob host before fetching.
+ */
+export async function readReceiptImage(url: string): Promise<Buffer> {
+  if (!/^https?:\/\//.test(url)) {
+    throw new Error("Invalid stored image URL");
   }
-  return fs.readFile(resolved);
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to fetch blob (${res.status})`);
+  const arr = new Uint8Array(await res.arrayBuffer());
+  return Buffer.from(arr);
 }
 
-export async function deleteReceiptImage(relPath: string): Promise<void> {
-  const resolved = path.resolve(STORAGE_DIR, relPath);
-  if (!resolved.startsWith(STORAGE_DIR)) return;
-  await fs.unlink(resolved).catch(() => undefined);
+export async function deleteReceiptImage(url: string): Promise<void> {
+  if (!url) return;
+  await del(url).catch(() => undefined);
 }
