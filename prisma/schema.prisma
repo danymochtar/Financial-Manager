@@ -1,0 +1,175 @@
+// Financial Manager data model
+// SQLite doesn't support native Decimal, so Prisma maps Decimal -> DECIMAL text.
+// We use string-serialized decimals via Prisma's Decimal type.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String        @id @default(cuid())
+  email           String        @unique
+  passwordHash    String
+  name            String
+  primaryCurrency String        @default("IDR")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  sources      Source[]
+  categories   Category[]
+  transactions Transaction[]
+  receipts     Receipt[]
+  budgets      Budget[]
+  recurring    Recurring[]
+}
+
+model Source {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  country   String
+  color     String   @default("#3b82f6")
+  createdAt DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  recurring    Recurring[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  kind      String
+  icon      String   @default("tag")
+  color     String   @default("#64748b")
+  createdAt DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  budgets      Budget[]
+  recurring    Recurring[]
+
+  @@unique([userId, name, kind])
+  @@index([userId])
+}
+
+model Transaction {
+  id         String   @id @default(cuid())
+  userId     String
+  sourceId   String
+  categoryId String
+  type       String
+  amount     Decimal
+  currency   String
+  amountIDR  Decimal
+  amountMYR  Decimal
+  date       DateTime
+  merchant   String?
+  note       String?
+  receiptId  String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source   Source   @relation(fields: [sourceId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+  receipt  Receipt? @relation(fields: [receiptId], references: [id])
+
+  @@index([userId, date])
+  @@index([sourceId])
+  @@index([categoryId])
+}
+
+model Receipt {
+  id          String    @id @default(cuid())
+  userId      String
+  imagePath   String
+  mimeType    String
+  rawOcrJson  String?
+  merchant    String?
+  totalAmount Decimal?
+  currency    String?
+  date        DateTime?
+  status      String    @default("draft")
+  createdAt   DateTime  @default(now())
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transaction Transaction?
+  items       ReceiptItem[]
+
+  @@index([userId, status])
+}
+
+model ReceiptItem {
+  id                 String   @id @default(cuid())
+  receiptId          String
+  name               String
+  quantity           Decimal?
+  unitPrice          Decimal?
+  total              Decimal?
+  categorySuggestion String?
+
+  receipt Receipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@index([receiptId])
+}
+
+model Budget {
+  id         String   @id @default(cuid())
+  userId     String
+  categoryId String
+  amount     Decimal
+  currency   String
+  period     String   @default("monthly")
+  startDate  DateTime
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@unique([userId, categoryId, period, currency])
+  @@index([userId])
+}
+
+model Recurring {
+  id          String   @id @default(cuid())
+  userId      String
+  sourceId    String
+  categoryId  String
+  type        String
+  amount      Decimal
+  currency    String
+  cadence     String
+  dayOfMonth  Int?
+  weekday     Int?
+  nextDueDate DateTime
+  isActive    Boolean  @default(true)
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source   Source   @relation(fields: [sourceId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@index([userId, isActive, nextDueDate])
+}
+
+model FxRate {
+  date         DateTime
+  fromCurrency String
+  toCurrency   String
+  rate         Decimal
+  fetchedAt    DateTime @default(now())
+
+  @@id([date, fromCurrency, toCurrency])
+}

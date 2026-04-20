@@ -1,0 +1,25 @@
+node_modules
+.next
+out
+build
+dist
+tsconfig.tsbuildinfo
+
+.env
+.env.local
+.env.production.local
+.env.development.local
+
+*.log
+npm-debug.log*
+
+.DS_Store
+.vscode
+.idea
+
+# local storage (receipt images, SQLite db)
+/storage
+/prisma/dev.db
+/prisma/dev.db-journal
+/prisma/*.db
+/prisma/*.db-journal
