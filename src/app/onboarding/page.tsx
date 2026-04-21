@@ -229,7 +229,7 @@ export default function OnboardingPage() {
             items={accounts}
             setItems={setAccounts}
             filterType="non_credit_card"
-            subtitle="Masukin saldo rekening bank, e-wallet, cash. Minimal 1."
+            subtitle={t("onb.accounts.subtitle")}
           />
         )}
 
@@ -238,7 +238,7 @@ export default function OnboardingPage() {
             items={creditCards}
             setItems={setCreditCards}
             filterType="credit_card"
-            subtitle="Punya CC? Input limit & tagihan. Skip kalo gak punya."
+            subtitle={t("onb.cc.subtitle")}
           />
         )}
 
@@ -258,16 +258,13 @@ export default function OnboardingPage() {
 
         {current.key === "done" && (
           <div className="mt-4 space-y-4">
-            <p className="text-slate-700">
-              Mantap! Semua udah kerekam. Klik <strong>Mulai Catat</strong> dan kita mulai tracking
-              keborosan lo.
-            </p>
+            <p className="text-slate-700">{t("onb.done.body")}</p>
             <div className="card p-4 space-y-1 text-sm">
-              <div>🏦 {accounts.length} rekening + {creditCards.length} kartu kredit</div>
-              <div>💰 {incomes.length} penghasilan</div>
-              <div>🏠 {fixedExpenses.length} pengeluaran fix</div>
-              <div>⛓️ {debts.length} cicilan</div>
-              <div>👪 {dependents.length} tanggungan</div>
+              <div>🏦 {accounts.length} {t("onb.done.accounts")} + {creditCards.length} {t("onb.done.cc")}</div>
+              <div>💰 {incomes.length} {t("onb.done.income")}</div>
+              <div>🏠 {fixedExpenses.length} {t("onb.done.fixed")}</div>
+              <div>⛓️ {debts.length} {t("onb.done.debts")}</div>
+              <div>👪 {dependents.length} {t("onb.done.dependents")}</div>
             </div>
           </div>
         )}
@@ -316,8 +313,9 @@ function AccountsStep({
   filterType: "non_credit_card" | "credit_card";
   subtitle: string;
 }) {
-  const templates = ACCOUNT_TEMPLATES.filter((t) =>
-    filterType === "credit_card" ? t.type === "credit_card" : t.type !== "credit_card"
+  const { t } = useT();
+  const templates = ACCOUNT_TEMPLATES.filter((tpl) =>
+    filterType === "credit_card" ? tpl.type === "credit_card" : tpl.type !== "credit_card"
   );
   const [showCustom, setShowCustom] = useState(false);
   const [custom, setCustom] = useState<AccountDraft>({
@@ -384,7 +382,7 @@ function AccountsStep({
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-[10px] uppercase text-slate-500">
-                      {filterType === "credit_card" ? "Tagihan skrg" : "Saldo"}
+                      {filterType === "credit_card" ? t("onb.f.ccBalance") : t("onb.f.balance")}
                     </label>
                     <input
                       type="number"
@@ -396,7 +394,7 @@ function AccountsStep({
                   </div>
                   {filterType === "credit_card" && (
                     <div>
-                      <label className="text-[10px] uppercase text-slate-500">Limit</label>
+                      <label className="text-[10px] uppercase text-slate-500">{t("onb.f.ccLimit")}</label>
                       <input
                         type="number"
                         min="0"
@@ -422,18 +420,18 @@ function AccountsStep({
       )}
 
       <div>
-        <div className="label mb-2">Pilih cepet dari template</div>
+        <div className="label mb-2">{t("onb.f.pickTemplate")}</div>
         <div className="flex flex-wrap gap-2">
-          {templates.map((t) => (
+          {templates.map((tpl) => (
             <button
-              key={t.name}
+              key={tpl.name}
               type="button"
-              onClick={() => addFromTemplate(t)}
-              disabled={items.some((x) => x.name === t.name)}
+              onClick={() => addFromTemplate(tpl)}
+              disabled={items.some((x) => x.name === tpl.name)}
               className="chip disabled:opacity-40"
             >
-              <span>{t.emoji}</span>
-              {t.name}
+              <span>{tpl.emoji}</span>
+              {tpl.name}
             </button>
           ))}
         </div>
@@ -443,7 +441,7 @@ function AccountsStep({
         <div className="card p-3 space-y-2">
           <input
             className="input text-sm"
-            placeholder="Nama rekening"
+            placeholder={t("onb.f.accountName")}
             value={custom.name}
             onChange={(e) => setCustom({ ...custom, name: e.target.value })}
           />
@@ -454,12 +452,12 @@ function AccountsStep({
               onChange={(e) => setCustom({ ...custom, type: e.target.value as AccountDraft["type"] })}
             >
               {filterType === "credit_card" ? (
-                <option value="credit_card">Credit Card</option>
+                <option value="credit_card">{t("akun.typeCC")}</option>
               ) : (
                 <>
-                  <option value="bank">Bank</option>
-                  <option value="ewallet">E-wallet</option>
-                  <option value="cash">Cash</option>
+                  <option value="bank">{t("akun.typeBank")}</option>
+                  <option value="ewallet">{t("akun.typeEwallet")}</option>
+                  <option value="cash">{t("akun.typeCash")}</option>
                 </>
               )}
             </select>
@@ -478,10 +476,10 @@ function AccountsStep({
           </div>
           <div className="flex gap-2">
             <button className="btn-outline flex-1 text-xs" onClick={() => setShowCustom(false)}>
-              Batal
+              {t("cancel")}
             </button>
             <button className="btn-primary flex-1 text-xs" onClick={addCustom}>
-              Tambah
+              {t("add")}
             </button>
           </div>
         </div>
@@ -491,7 +489,7 @@ function AccountsStep({
           onClick={() => setShowCustom(true)}
           className="btn-outline w-full text-sm"
         >
-          <Plus className="h-4 w-4" /> Tambah manual
+          <Plus className="h-4 w-4" /> {t("onb.f.addManual")}
         </button>
       )}
     </div>
@@ -507,6 +505,7 @@ function IncomeStep({
   setItems: (v: IncomeDraft[]) => void;
   accounts: AccountDraft[];
 }) {
+  const { t } = useT();
   const [draft, setDraft] = useState<IncomeDraft>({
     name: "Gaji",
     amount: 0,
@@ -523,9 +522,7 @@ function IncomeStep({
 
   return (
     <div className="mt-3 space-y-4">
-      <p className="text-sm text-slate-600">
-        Gaji, retainer project, dll yang masuk tiap bulan. Skip kalo belum ada.
-      </p>
+      <p className="text-sm text-slate-600">{t("onb.income.subtitle")}</p>
       {items.length > 0 && (
         <div className="space-y-2">
           {items.map((it, i) => (
@@ -549,7 +546,7 @@ function IncomeStep({
       <div className="card p-3 space-y-2">
         <input
           className="input text-sm"
-          placeholder="Nama (contoh: Gaji Kerjaan Malaysia)"
+          placeholder={t("onb.f.nameExample.income")}
           value={draft.name}
           onChange={(e) => setDraft({ ...draft, name: e.target.value })}
         />
@@ -557,7 +554,7 @@ function IncomeStep({
           <input
             className="input text-sm"
             type="number"
-            placeholder="Amount"
+            placeholder={t("onb.f.amount")}
             min="0"
             value={draft.amount || ""}
             onChange={(e) => setDraft({ ...draft, amount: Number(e.target.value) })}
@@ -573,7 +570,7 @@ function IncomeStep({
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[10px] uppercase text-slate-500">Tanggal gajian</label>
+            <label className="text-[10px] uppercase text-slate-500">{t("onb.f.payDate")}</label>
             <input
               className="input text-sm"
               type="number"
@@ -584,7 +581,7 @@ function IncomeStep({
             />
           </div>
           <div>
-            <label className="text-[10px] uppercase text-slate-500">Masuk ke rekening</label>
+            <label className="text-[10px] uppercase text-slate-500">{t("onb.f.toAccount")}</label>
             <select
               className="input text-sm"
               value={draft.accountIndex ?? ""}
@@ -592,7 +589,7 @@ function IncomeStep({
                 setDraft({ ...draft, accountIndex: e.target.value === "" ? null : Number(e.target.value) })
               }
             >
-              <option value="">— pilih —</option>
+              <option value="">{t("onb.f.pick")}</option>
               {accounts.map((a, idx) => (
                 <option key={idx} value={idx}>
                   {a.emoji} {a.name}
@@ -602,7 +599,7 @@ function IncomeStep({
           </div>
         </div>
         <button className="btn-primary w-full text-sm" onClick={add}>
-          <Plus className="h-4 w-4" /> Tambahin
+          <Plus className="h-4 w-4" /> {t("onb.f.add")}
         </button>
       </div>
     </div>
@@ -616,6 +613,7 @@ function FixedExpenseStep({
   items: FixedExpenseDraft[];
   setItems: (v: FixedExpenseDraft[]) => void;
 }) {
+  const { t } = useT();
   const [draft, setDraft] = useState<FixedExpenseDraft>({
     name: "",
     amount: 0,
@@ -630,9 +628,7 @@ function FixedExpenseStep({
   }
   return (
     <div className="mt-3 space-y-4">
-      <p className="text-sm text-slate-600">
-        Biaya pasti tiap bulan: kost, internet, langganan. (Cicilan nanti di step setelah ini).
-      </p>
+      <p className="text-sm text-slate-600">{t("onb.fixed.subtitle")}</p>
       {items.length > 0 && (
         <div className="space-y-2">
           {items.map((it, i) => (
@@ -656,7 +652,7 @@ function FixedExpenseStep({
       <div className="card p-3 space-y-2">
         <input
           className="input text-sm"
-          placeholder="Nama (contoh: Sewa Kost Sudirman)"
+          placeholder={t("onb.f.nameExample.kost")}
           value={draft.name}
           onChange={(e) => setDraft({ ...draft, name: e.target.value })}
         />
@@ -664,7 +660,7 @@ function FixedExpenseStep({
           <input
             className="input text-sm"
             type="number"
-            placeholder="Amount"
+            placeholder={t("onb.f.amount")}
             min="0"
             value={draft.amount || ""}
             onChange={(e) => setDraft({ ...draft, amount: Number(e.target.value) })}
@@ -680,7 +676,7 @@ function FixedExpenseStep({
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[10px] uppercase text-slate-500">Tgl bayar</label>
+            <label className="text-[10px] uppercase text-slate-500">{t("onb.f.payDay")}</label>
             <input
               className="input text-sm"
               type="number"
@@ -691,7 +687,7 @@ function FixedExpenseStep({
             />
           </div>
           <div>
-            <label className="text-[10px] uppercase text-slate-500">Kategori</label>
+            <label className="text-[10px] uppercase text-slate-500">{t("onb.f.category")}</label>
             <select
               className="input text-sm"
               value={draft.categoryName}
@@ -706,7 +702,7 @@ function FixedExpenseStep({
           </div>
         </div>
         <button className="btn-primary w-full text-sm" onClick={add}>
-          <Plus className="h-4 w-4" /> Tambahin
+          <Plus className="h-4 w-4" /> {t("onb.f.add")}
         </button>
       </div>
     </div>
@@ -714,6 +710,7 @@ function FixedExpenseStep({
 }
 
 function DebtStep({ items, setItems }: { items: DebtDraft[]; setItems: (v: DebtDraft[]) => void }) {
+  const { t } = useT();
   const [draft, setDraft] = useState<DebtDraft>({
     name: "",
     remainingAmount: 0,
@@ -727,9 +724,7 @@ function DebtStep({ items, setItems }: { items: DebtDraft[]; setItems: (v: DebtD
   }
   return (
     <div className="mt-3 space-y-4">
-      <p className="text-sm text-slate-600">
-        Cicilan KPR, KKB, pinjol, CC installment, dll. Biar kelihatan progress lunas-nya.
-      </p>
+      <p className="text-sm text-slate-600">{t("onb.debt.subtitle")}</p>
       {items.length > 0 && (
         <div className="space-y-2">
           {items.map((it, i) => (
@@ -754,7 +749,7 @@ function DebtStep({ items, setItems }: { items: DebtDraft[]; setItems: (v: DebtD
       <div className="card p-3 space-y-2">
         <input
           className="input text-sm"
-          placeholder="Nama cicilan"
+          placeholder={t("onb.f.nameDebt")}
           value={draft.name}
           onChange={(e) => setDraft({ ...draft, name: e.target.value })}
         />
@@ -762,7 +757,7 @@ function DebtStep({ items, setItems }: { items: DebtDraft[]; setItems: (v: DebtD
           <input
             className="input text-sm"
             type="number"
-            placeholder="Sisa hutang"
+            placeholder={t("onb.f.remaining")}
             min="0"
             value={draft.remainingAmount || ""}
             onChange={(e) => setDraft({ ...draft, remainingAmount: Number(e.target.value) })}
@@ -770,7 +765,7 @@ function DebtStep({ items, setItems }: { items: DebtDraft[]; setItems: (v: DebtD
           <input
             className="input text-sm"
             type="number"
-            placeholder="Cicilan/bln"
+            placeholder={t("onb.f.monthly")}
             min="0"
             value={draft.monthlyPayment || ""}
             onChange={(e) => setDraft({ ...draft, monthlyPayment: Number(e.target.value) })}
@@ -785,7 +780,7 @@ function DebtStep({ items, setItems }: { items: DebtDraft[]; setItems: (v: DebtD
           <option value="MYR">MYR</option>
         </select>
         <button className="btn-primary w-full text-sm" onClick={add}>
-          <Plus className="h-4 w-4" /> Tambahin
+          <Plus className="h-4 w-4" /> {t("onb.f.add")}
         </button>
       </div>
     </div>
@@ -799,6 +794,7 @@ function DependentStep({
   items: DependentDraft[];
   setItems: (v: DependentDraft[]) => void;
 }) {
+  const { t } = useT();
   const [draft, setDraft] = useState<DependentDraft>({
     name: "",
     relationship: "parent",
@@ -812,9 +808,7 @@ function DependentStep({
   }
   return (
     <div className="mt-3 space-y-4">
-      <p className="text-sm text-slate-600">
-        Generasi sandwich? Tanggungan keluarga yang lo kirimin tiap bulan. (Skip kalo belum ada.)
-      </p>
+      <p className="text-sm text-slate-600">{t("onb.dep.subtitle")}</p>
       {items.length > 0 && (
         <div className="space-y-2">
           {items.map((it, i) => (
@@ -841,7 +835,7 @@ function DependentStep({
       <div className="card p-3 space-y-2">
         <input
           className="input text-sm"
-          placeholder="Nama (contoh: Mama)"
+          placeholder={t("onb.f.nameDep")}
           value={draft.name}
           onChange={(e) => setDraft({ ...draft, name: e.target.value })}
         />
@@ -869,13 +863,13 @@ function DependentStep({
         <input
           className="input text-sm"
           type="number"
-          placeholder="Kirim per bulan"
+          placeholder={t("onb.f.monthlySend")}
           min="0"
           value={draft.monthlyAmount || ""}
           onChange={(e) => setDraft({ ...draft, monthlyAmount: Number(e.target.value) })}
         />
         <button className="btn-primary w-full text-sm" onClick={add}>
-          <Plus className="h-4 w-4" /> Tambahin
+          <Plus className="h-4 w-4" /> {t("onb.f.add")}
         </button>
       </div>
     </div>
@@ -883,44 +877,42 @@ function DependentStep({
 }
 
 function BudgetStep({ value, setValue }: { value: BudgetDraft; setValue: (v: BudgetDraft) => void }) {
+  const { t } = useT();
   return (
     <div className="mt-3 space-y-4">
-      <p className="text-sm text-slate-600">
-        Target pengeluaran variable (jajan, makan, belanja). Kalo lewat, gw kasih tau "Woy boros!".
-        Isi yang lo mau aja — boleh skip semua juga.
-      </p>
+      <p className="text-sm text-slate-600">{t("onb.budget.subtitle")}</p>
       <div className="card p-4 space-y-3">
-        <div className="text-sm font-semibold text-pink-700">Rupiah</div>
+        <div className="text-sm font-semibold text-pink-700">{t("onb.b.rupiah")}</div>
         <BudgetRow
-          label="Harian"
+          label={t("onb.b.daily")}
           value={value.dailyIDR ?? ""}
           onChange={(n) => setValue({ ...value, dailyIDR: n })}
         />
         <BudgetRow
-          label="Mingguan"
+          label={t("onb.b.weekly")}
           value={value.weeklyIDR ?? ""}
           onChange={(n) => setValue({ ...value, weeklyIDR: n })}
         />
         <BudgetRow
-          label="Bulanan"
+          label={t("onb.b.monthly")}
           value={value.monthlyIDR ?? ""}
           onChange={(n) => setValue({ ...value, monthlyIDR: n })}
         />
       </div>
       <div className="card p-4 space-y-3">
-        <div className="text-sm font-semibold text-pink-700">Ringgit</div>
+        <div className="text-sm font-semibold text-pink-700">{t("onb.b.ringgit")}</div>
         <BudgetRow
-          label="Harian"
+          label={t("onb.b.daily")}
           value={value.dailyMYR ?? ""}
           onChange={(n) => setValue({ ...value, dailyMYR: n })}
         />
         <BudgetRow
-          label="Mingguan"
+          label={t("onb.b.weekly")}
           value={value.weeklyMYR ?? ""}
           onChange={(n) => setValue({ ...value, weeklyMYR: n })}
         />
         <BudgetRow
-          label="Bulanan"
+          label={t("onb.b.monthly")}
           value={value.monthlyMYR ?? ""}
           onChange={(n) => setValue({ ...value, monthlyMYR: n })}
         />
@@ -945,7 +937,7 @@ function BudgetRow({
         className="input text-sm flex-1"
         type="number"
         min="0"
-        placeholder="0 = skip"
+        placeholder={"0 = skip"}
         value={value}
         onChange={(e) => {
           const n = Number(e.target.value);

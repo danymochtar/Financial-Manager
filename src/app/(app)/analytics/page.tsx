@@ -17,6 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import { formatShort } from "@/lib/currency";
+import { useT } from "@/lib/i18n";
 
 type Summary = {
   totals: { incomeIDR: number; expenseIDR: number; incomeMYR: number; expenseMYR: number };
@@ -28,6 +29,7 @@ type Summary = {
 type Currency = "IDR" | "MYR";
 
 export default function AnalyticsPage() {
+  const { t } = useT();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [curr, setCurr] = useState<Currency>("IDR");
 
@@ -43,8 +45,8 @@ export default function AnalyticsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Stats</h1>
-          <p className="text-sm text-slate-600">Liat seberapa jago lo ngerem boros.</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("analytics.title")}</h1>
+          <p className="text-sm text-slate-600">{t("analytics.desc")}</p>
         </div>
         <div className="inline-flex rounded-full bg-white p-0.5 border border-pink-100 text-xs">
           {(["IDR", "MYR"] as Currency[]).map((c) => (
@@ -65,29 +67,27 @@ export default function AnalyticsPage() {
         <>
           <div className="card bg-gradient-to-br from-orange-500 via-pink-500 to-purple-500 p-5 text-white">
             <Flame className="h-8 w-8" />
-            <div className="mt-2 text-xs uppercase tracking-wider opacity-90">Hemat Streak</div>
+            <div className="mt-2 text-xs uppercase tracking-wider opacity-90">{t("dash.streak")}</div>
             <div className="text-4xl font-bold">{summary.streak.currentStreak} 🔥</div>
             <div className="text-xs opacity-90">
-              Terbaik: {summary.streak.bestStreak} hari
+              {t("analytics.streakBest")}: {summary.streak.bestStreak} {t("dash.streakDays")}
             </div>
             {summary.streak.currentStreak === 0 && (
-              <div className="mt-2 text-xs opacity-90">
-                Set target harian di /budget biar streak mulai keitung.
-              </div>
+              <div className="mt-2 text-xs opacity-90">{t("analytics.streakStart")}</div>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="stat-tile">
               <div className="flex items-center gap-1 text-xs text-slate-500">
-                <TrendingUp className="h-3 w-3 text-emerald-500" /> Income bulan ini
+                <TrendingUp className="h-3 w-3 text-emerald-500" /> {t("analytics.incomeMonth")}
               </div>
               <div className="mt-1 text-lg font-bold text-emerald-600">
                 {formatShort(curr === "IDR" ? summary.totals.incomeIDR : summary.totals.incomeMYR, curr)}
               </div>
             </div>
             <div className="stat-tile">
-              <div className="flex items-center gap-1 text-xs text-slate-500">🫠 Expense</div>
+              <div className="flex items-center gap-1 text-xs text-slate-500">{t("analytics.expenseMonth")}</div>
               <div className="mt-1 text-lg font-bold text-rose-600">
                 {formatShort(curr === "IDR" ? summary.totals.expenseIDR : summary.totals.expenseMYR, curr)}
               </div>
@@ -95,7 +95,7 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="card p-4">
-            <div className="mb-2 text-sm font-semibold">6 Bulan Terakhir</div>
+            <div className="mb-2 text-sm font-semibold">{t("analytics.last6m")}</div>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={summary.series}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#fce7f3" />
@@ -111,7 +111,7 @@ export default function AnalyticsPage() {
 
           {variableCats.length > 0 && (
             <div className="card p-4">
-              <div className="mb-2 text-sm font-semibold">Breakdown Keborosan 🫠</div>
+              <div className="mb-2 text-sm font-semibold">{t("analytics.borosBreakdown")}</div>
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
                   <Pie
@@ -133,7 +133,7 @@ export default function AnalyticsPage() {
           )}
 
           <div className="card p-4">
-            <div className="mb-2 text-sm font-semibold">Export data</div>
+            <div className="mb-2 text-sm font-semibold">{t("analytics.exportData")}</div>
             <div className="flex gap-2">
               <Link href="/api/export?format=csv" className="btn-outline flex-1 text-xs">
                 <Download className="h-3 w-3" /> CSV

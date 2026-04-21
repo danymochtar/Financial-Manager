@@ -5,6 +5,7 @@ import { Upload, Plus, X, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { formatMoney, formatShort } from "@/lib/currency";
 import { ACCOUNT_TEMPLATES } from "@/lib/categories";
+import { useT } from "@/lib/i18n";
 
 type Account = {
   id: string;
@@ -26,6 +27,7 @@ type Upload = {
 };
 
 export default function AkunPage() {
+  const { t } = useT();
   const toast = useToast();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [uploads, setUploads] = useState<Upload[]>([]);
@@ -61,16 +63,16 @@ export default function AkunPage() {
     });
     if (!res.ok) {
       const d = await res.json();
-      toast({ kind: "error", message: d?.error ?? "Gagal simpan" });
+      toast({ kind: "error", message: d?.error ?? t("toast.saveFailed") });
       return;
     }
     setEditingId(null);
-    toast({ kind: "success", message: "Saldo ter-update" });
+    toast({ kind: "success", message: t("toast.balanceUpdated") });
     load();
   }
 
   async function onDelete(id: string) {
-    if (!confirm("Hapus akun ini?")) return;
+    if (!confirm(t("akun.deleteConfirm"))) return;
     const res = await fetch(`/api/accounts/${id}`, { method: "DELETE" });
     if (res.ok) load();
   }
@@ -83,7 +85,7 @@ export default function AkunPage() {
       const res = await fetch("/api/balance-uploads", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) {
-        toast({ kind: "error", message: data?.error ?? "OCR gagal" });
+        toast({ kind: "error", message: data?.error ?? t("toast.ocrFailed") });
         return;
       }
       setLastUpload({
@@ -106,10 +108,10 @@ export default function AkunPage() {
       body: JSON.stringify({ accountId, balance }),
     });
     if (!res.ok) {
-      toast({ kind: "error", message: "Gagal apply" });
+      toast({ kind: "error", message: t("toast.balanceFailed") });
       return;
     }
-    toast({ kind: "success", message: "Saldo udah di-update 🎉" });
+    toast({ kind: "success", message: t("toast.balanceUpdated") });
     setLastUpload(null);
     load();
   }
@@ -129,9 +131,9 @@ export default function AkunPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Akun Lo</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("akun.title")}</h1>
         <button className="btn-outline text-xs" onClick={() => setShowAdd(true)}>
-          <Plus className="h-3 w-3" /> Akun baru
+          <Plus className="h-3 w-3" /> {t("akun.addBtn")}
         </button>
       </div>
 
@@ -145,10 +147,8 @@ export default function AkunPage() {
           <Upload className="h-5 w-5" />
         </div>
         <div className="flex-1 text-left">
-          <div className="font-semibold text-sm">Update Saldo via Screenshot</div>
-          <div className="text-xs text-slate-500">
-            Upload screenshot banking app / e-wallet → auto-extract saldo
-          </div>
+          <div className="font-semibold text-sm">{t("akun.uploadBalance")}</div>
+          <div className="text-xs text-slate-500">{t("akun.uploadHint")}</div>
         </div>
       </button>
       <input
@@ -165,7 +165,7 @@ export default function AkunPage() {
 
       {uploadingBalance && (
         <div className="card flex items-center gap-2 p-3 text-sm text-pink-700">
-          <Loader2 className="h-4 w-4 animate-spin" /> Lagi nebak saldo dari screenshot...
+          <Loader2 className="h-4 w-4 animate-spin" /> {t("akun.ocrLoading")}
         </div>
       )}
 
@@ -183,11 +183,11 @@ export default function AkunPage() {
       {Object.entries(totalByCurrency).map(([cur, { asset, debt }]) => (
         <div key={cur} className="grid grid-cols-2 gap-3">
           <div className="stat-tile">
-            <div className="text-[11px] uppercase tracking-wider text-emerald-600">Aset {cur}</div>
+            <div className="text-[11px] uppercase tracking-wider text-emerald-600">{t("akun.asset")} {cur}</div>
             <div className="mt-1 font-bold">{formatShort(asset, cur)}</div>
           </div>
           <div className="stat-tile">
-            <div className="text-[11px] uppercase tracking-wider text-rose-600">Hutang {cur}</div>
+            <div className="text-[11px] uppercase tracking-wider text-rose-600">{t("akun.debt")} {cur}</div>
             <div className="mt-1 font-bold">{formatShort(debt, cur)}</div>
           </div>
         </div>
@@ -195,9 +195,9 @@ export default function AkunPage() {
 
       {/* Accounts */}
       {loading ? (
-        <div className="card p-4 text-sm text-slate-500">Loading…</div>
+        <div className="card p-4 text-sm text-slate-500">{t("loading")}</div>
       ) : accounts.length === 0 ? (
-        <div className="card p-4 text-sm text-slate-500">Belum ada akun.</div>
+        <div className="card p-4 text-sm text-slate-500">{t("akun.noAccounts")}</div>
       ) : (
         <div className="space-y-2">
           {accounts.map((a) => (
@@ -242,7 +242,7 @@ export default function AkunPage() {
                     </div>
                     {a.creditLimit && (
                       <div className="text-[10px] text-slate-500">
-                        limit {formatShort(Number(a.creditLimit), a.currency)}
+                        {t("akun.limit")} {formatShort(Number(a.creditLimit), a.currency)}
                       </div>
                     )}
                   </button>
@@ -253,7 +253,7 @@ export default function AkunPage() {
                   className="text-[11px] text-rose-500 hover:underline"
                   onClick={() => onDelete(a.id)}
                 >
-                  Hapus
+                  {t("delete")}
                 </button>
               </div>
             </div>
@@ -279,25 +279,26 @@ function BalanceApplyDialog({
   onApply: (accountId: string, balance: number) => void;
   onClose: () => void;
 }) {
+  const { t } = useT();
   const [accountId, setAccountId] = useState<string>(matchedId ?? accounts[0]?.id ?? "");
   const [balance, setBalance] = useState<number>(draft?.balance ?? 0);
 
   return (
     <div className="card bg-pink-50/60 p-4 space-y-3 border-pink-300">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold">Hasil OCR</div>
+        <div className="text-sm font-semibold">{t("akun.ocrResult")}</div>
         <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
           <X className="h-4 w-4" />
         </button>
       </div>
       <div className="text-xs text-slate-600">
-        Terdeteksi:{" "}
-        <strong>{draft?.account_name ?? "Akun gak kebaca"}</strong>
+        {t("akun.detected")}:{" "}
+        <strong>{draft?.account_name ?? t("akun.unknownAccount")}</strong>
         {draft?.currency && ` · ${draft.currency}`}
         {draft?.balance != null && ` · ${draft.balance.toLocaleString()}`}
       </div>
       <div>
-        <label className="label">Apply ke akun</label>
+        <label className="label">{t("akun.applyTo")}</label>
         <select
           className="input mt-1 text-sm"
           value={accountId}
@@ -311,7 +312,7 @@ function BalanceApplyDialog({
         </select>
       </div>
       <div>
-        <label className="label">Saldo baru</label>
+        <label className="label">{t("akun.newBalance")}</label>
         <input
           type="number"
           className="input mt-1 text-sm"
@@ -324,13 +325,14 @@ function BalanceApplyDialog({
         disabled={!accountId || !balance}
         onClick={() => onApply(accountId, balance)}
       >
-        Update saldo
+        {t("akun.updateBalance")}
       </button>
     </div>
   );
 }
 
 function AddAccountSheet({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+  const { t } = useT();
   const toast = useToast();
   const [custom, setCustom] = useState({
     name: "",
@@ -342,22 +344,22 @@ function AddAccountSheet({ onClose, onAdded }: { onClose: () => void; onAdded: (
     color: "#ec4899",
   });
 
-  async function addFromTemplate(t: (typeof ACCOUNT_TEMPLATES)[number]) {
+  async function addFromTemplate(tpl: (typeof ACCOUNT_TEMPLATES)[number]) {
     const res = await fetch("/api/accounts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: t.name,
-        type: t.type,
-        currency: t.currency,
+        name: tpl.name,
+        type: tpl.type,
+        currency: tpl.currency,
         balance: 0,
-        emoji: t.emoji,
-        color: t.color,
+        emoji: tpl.emoji,
+        color: tpl.color,
       }),
     });
     if (!res.ok) {
       const d = await res.json();
-      toast({ kind: "error", message: d?.error ?? "Gagal" });
+      toast({ kind: "error", message: d?.error ?? t("toast.failed") });
       return;
     }
     onAdded();
@@ -375,7 +377,7 @@ function AddAccountSheet({ onClose, onAdded }: { onClose: () => void; onAdded: (
     });
     if (!res.ok) {
       const d = await res.json();
-      toast({ kind: "error", message: d?.error ?? "Gagal" });
+      toast({ kind: "error", message: d?.error ?? t("toast.failed") });
       return;
     }
     onAdded();
@@ -391,28 +393,28 @@ function AddAccountSheet({ onClose, onAdded }: { onClose: () => void; onAdded: (
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-lg font-bold">Tambah Akun</div>
+          <div className="text-lg font-bold">{t("akun.addBtn")}</div>
           <button onClick={onClose} className="text-slate-400">
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="label mb-2">Dari template</div>
+        <div className="label mb-2">{t("akun.fromTemplate")}</div>
         <div className="flex flex-wrap gap-2 mb-4 max-h-40 overflow-y-auto">
-          {ACCOUNT_TEMPLATES.map((t) => (
+          {ACCOUNT_TEMPLATES.map((tpl) => (
             <button
-              key={t.name}
-              onClick={() => addFromTemplate(t)}
+              key={tpl.name}
+              onClick={() => addFromTemplate(tpl)}
               className="chip"
             >
-              {t.emoji} {t.name}
+              {tpl.emoji} {tpl.name}
             </button>
           ))}
         </div>
-        <div className="label mb-2">Atau manual</div>
+        <div className="label mb-2">{t("akun.addManually")}</div>
         <div className="space-y-2">
           <input
             className="input text-sm"
-            placeholder="Nama"
+            placeholder={t("wajib.form.name")}
             value={custom.name}
             onChange={(e) => setCustom({ ...custom, name: e.target.value })}
           />
@@ -422,10 +424,10 @@ function AddAccountSheet({ onClose, onAdded }: { onClose: () => void; onAdded: (
               value={custom.type}
               onChange={(e) => setCustom({ ...custom, type: e.target.value as typeof custom.type })}
             >
-              <option value="bank">Bank</option>
-              <option value="ewallet">E-wallet</option>
-              <option value="cash">Cash</option>
-              <option value="credit_card">Credit Card</option>
+              <option value="bank">{t("akun.typeBank")}</option>
+              <option value="ewallet">{t("akun.typeEwallet")}</option>
+              <option value="cash">{t("akun.typeCash")}</option>
+              <option value="credit_card">{t("akun.typeCC")}</option>
             </select>
             <select
               className="input text-sm"
@@ -443,7 +445,7 @@ function AddAccountSheet({ onClose, onAdded }: { onClose: () => void; onAdded: (
           <input
             type="number"
             className="input text-sm"
-            placeholder="Saldo awal"
+            placeholder={t("akun.initBalance")}
             value={custom.balance || ""}
             onChange={(e) => setCustom({ ...custom, balance: Number(e.target.value) })}
           />
@@ -451,13 +453,13 @@ function AddAccountSheet({ onClose, onAdded }: { onClose: () => void; onAdded: (
             <input
               type="number"
               className="input text-sm"
-              placeholder="Limit kartu"
+              placeholder={t("akun.limitCard")}
               value={custom.creditLimit || ""}
               onChange={(e) => setCustom({ ...custom, creditLimit: Number(e.target.value) })}
             />
           )}
           <button className="btn-primary w-full" onClick={addCustom}>
-            Tambah
+            {t("add")}
           </button>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Loader2, X, Check, RefreshCw, Edit3 } from "lucide-react";
 import { useToast } from "@/components/Toast";
+import { useT } from "@/lib/i18n";
 
 type QueueItem = {
   id: string;
@@ -19,6 +20,7 @@ type QueueItem = {
 };
 
 export default function CatatPage() {
+  const { t } = useT();
   const router = useRouter();
   const toast = useToast();
   const cameraInput = useRef<HTMLInputElement>(null);
@@ -107,10 +109,8 @@ export default function CatatPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Catat Keborosan 📸</h1>
-        <p className="text-sm text-slate-600">
-          Foto struk langsung dari kamera. Bisa banyak sekaligus — tap tombol "Ambil lagi" sampe puas.
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("catat.title")}</h1>
+        <p className="text-sm text-slate-600">{t("catat.desc")}</p>
       </div>
 
       {/* Camera button */}
@@ -120,8 +120,8 @@ export default function CatatPage() {
         className="card flex w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-pink-300 bg-pink-50/50 py-8 text-pink-700 active:scale-[0.99]"
       >
         <Camera className="h-10 w-10" />
-        <div className="font-semibold">Ambil Foto Struk</div>
-        <div className="text-xs text-slate-500">Kamera bakal kebuka — bisa ambil beberapa</div>
+        <div className="font-semibold">{t("catat.takePhotoBtn")}</div>
+        <div className="text-xs text-slate-500">{t("catat.takePhotoHint")}</div>
       </button>
       <input
         ref={cameraInput}
@@ -140,7 +140,8 @@ export default function CatatPage() {
       {queue.length > 0 && (
         <>
           <div className="text-xs text-slate-500">
-            {queue.length} struk · {doneCount} done · {busyCount} proses · {pendingCount} pending
+            {queue.length} {t("catat.queueLabel")} · {doneCount} {t("catat.queueDone")} · {busyCount}{" "}
+            {t("catat.queueProcess")} · {pendingCount} {t("catat.queuePending")}
           </div>
           <div className="grid grid-cols-2 gap-3">
             {queue.map((item) => (
@@ -154,19 +155,15 @@ export default function CatatPage() {
       {queue.length > 0 && (
         <div className="sticky bottom-24 mx-auto flex max-w-md gap-2">
           {pendingCount > 0 && (
-            <button
-              className="btn-primary flex-1"
-              onClick={processAll}
-              disabled={processing}
-            >
+            <button className="btn-primary flex-1" onClick={processAll} disabled={processing}>
               {processing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  OCR {busyCount}/{queue.length}...
+                  {t("catat.processing")} {busyCount}/{queue.length}...
                 </>
               ) : (
                 <>
-                  🪄 Proses {pendingCount} struk
+                  🪄 {t("catat.process")} {pendingCount} {t("catat.queueLabel")}
                 </>
               )}
             </button>
@@ -177,7 +174,7 @@ export default function CatatPage() {
               onClick={() => router.push("/review")}
               disabled={processing}
             >
-              Review {doneCount} struk →
+              {t("catat.reviewBtn").replace("{n}", String(doneCount))}
             </button>
           )}
         </div>
@@ -185,9 +182,7 @@ export default function CatatPage() {
 
       {queue.length === 0 && (
         <div className="card p-4 text-sm text-slate-600">
-          <p>
-            💡 Tips: foto dari atas, jangan miring. Makin jelas teks-nya makin akurat OCR-nya.
-          </p>
+          <p>{t("catat.tip")}</p>
         </div>
       )}
     </div>
@@ -203,6 +198,7 @@ function QueueCard({
   onRemove: (id: string) => void;
   onRetry: () => void;
 }) {
+  const { t } = useT();
   const router = useRouter();
   return (
     <div className="card overflow-hidden">
@@ -223,7 +219,7 @@ function QueueCard({
         {item.status === "ocr" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white">
             <Loader2 className="h-6 w-6 animate-spin" />
-            <div className="mt-1 text-xs">Ngintip struk...</div>
+            <div className="mt-1 text-xs">{t("catat.reading")}</div>
           </div>
         )}
         {item.status === "done" && (
@@ -237,24 +233,24 @@ function QueueCard({
           <div className="space-y-1">
             <div className="truncate text-sm font-medium">{item.merchant ?? "—"}</div>
             <div className="text-xs text-slate-500">
-              {item.total ? `${item.currency ?? ""} ${item.total.toLocaleString()}` : "Total gak ke-baca"}
+              {item.total ? `${item.currency ?? ""} ${item.total.toLocaleString()}` : t("catat.notRead")}
             </div>
             <button
               className="btn-outline w-full text-xs py-1.5"
               onClick={() => router.push(`/review/${item.receiptId}`)}
             >
-              <Edit3 className="h-3 w-3" /> Review
+              <Edit3 className="h-3 w-3" /> {t("catat.reviewItem")}
             </button>
           </div>
         ) : item.status === "error" ? (
           <div>
             <div className="text-xs text-rose-600">{item.error ?? "Error"}</div>
             <button className="btn-ghost mt-1 w-full text-xs py-1.5" onClick={onRetry}>
-              <RefreshCw className="h-3 w-3" /> Retry
+              <RefreshCw className="h-3 w-3" /> {t("catat.retry")}
             </button>
           </div>
         ) : (
-          <div className="text-xs text-slate-500">Pending</div>
+          <div className="text-xs text-slate-500">{t("catat.pending")}</div>
         )}
       </div>
     </div>

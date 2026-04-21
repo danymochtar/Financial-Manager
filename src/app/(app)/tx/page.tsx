@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { formatShort } from "@/lib/currency";
+import { useT } from "@/lib/i18n";
 
 type Tx = {
   id: string;
@@ -18,6 +19,7 @@ type Tx = {
 };
 
 export default function TxPage() {
+  const { t, locale } = useT();
   const [items, setItems] = useState<Tx[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "expense" | "income" | "boros">("all");
@@ -37,35 +39,35 @@ export default function TxPage() {
   }, [filter]);
 
   // Group by date
-  const grouped = items.reduce((acc, t) => {
-    const key = new Date(t.date).toLocaleDateString("id-ID", {
+  const grouped = items.reduce((acc, tx) => {
+    const key = new Date(tx.date).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", {
       day: "numeric",
       month: "long",
       year: "numeric",
     });
     if (!acc[key]) acc[key] = [];
-    acc[key].push(t);
+    acc[key].push(tx);
     return acc;
   }, {} as Record<string, Tx[]>);
+
+  const FILTERS = [
+    { k: "all" as const, l: t("tx.filter.all") },
+    { k: "expense" as const, l: t("tx.filter.expense") },
+    { k: "income" as const, l: t("tx.filter.income") },
+    { k: "boros" as const, l: t("tx.filter.boros") },
+  ];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Transaksi</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("tx.title")}</h1>
         <Link href="/tx/new" className="btn-outline text-xs">
-          <Plus className="h-3 w-3" /> Manual
+          <Plus className="h-3 w-3" /> {t("tx.manual")}
         </Link>
       </div>
 
       <div className="flex gap-1 overflow-x-auto rounded-full bg-white p-1 border border-pink-100 text-xs">
-        {(
-          [
-            { k: "all", l: "Semua" },
-            { k: "expense", l: "Pengeluaran" },
-            { k: "income", l: "Pemasukan" },
-            { k: "boros", l: "🫠 Boros" },
-          ] as const
-        ).map(({ k, l }) => (
+        {FILTERS.map(({ k, l }) => (
           <button
             key={k}
             onClick={() => setFilter(k)}
@@ -79,11 +81,9 @@ export default function TxPage() {
       </div>
 
       {loading ? (
-        <div className="card p-4 text-sm text-slate-500">Loading…</div>
+        <div className="card p-4 text-sm text-slate-500">{t("loading")}</div>
       ) : items.length === 0 ? (
-        <div className="card p-6 text-center text-sm text-slate-500">
-          Gak ada transaksi. Tap tombol 📸 di bawah buat mulai catat.
-        </div>
+        <div className="card p-6 text-center text-sm text-slate-500">{t("tx.empty")}</div>
       ) : (
         <div className="space-y-4">
           {Object.entries(grouped).map(([day, txs]) => (
@@ -92,28 +92,28 @@ export default function TxPage() {
                 {day}
               </div>
               <div className="card divide-y divide-pink-50">
-                {txs.map((t) => (
+                {txs.map((tx) => (
                   <Link
-                    key={t.id}
-                    href={`/tx/${t.id}`}
+                    key={tx.id}
+                    href={`/tx/${tx.id}`}
                     className="flex items-center gap-3 p-3 active:bg-pink-50/40"
                   >
-                    <span className="text-xl">{t.category.emoji}</span>
+                    <span className="text-xl">{tx.category.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <div className="truncate text-sm font-medium">
-                        {t.merchant ?? t.category.name}
-                        {t.isBoros && <span className="ml-1 text-xs">🫠</span>}
+                        {tx.merchant ?? tx.category.name}
+                        {tx.isBoros && <span className="ml-1 text-xs">🫠</span>}
                       </div>
                       <div className="text-[11px] text-slate-500">
-                        {t.account.emoji} {t.account.name}
+                        {tx.account.emoji} {tx.account.name}
                       </div>
                     </div>
                     <div
                       className={`text-sm font-semibold ${
-                        t.type === "income" ? "text-emerald-600" : "text-rose-600"
+                        tx.type === "income" ? "text-emerald-600" : "text-rose-600"
                       }`}
                     >
-                      {t.type === "income" ? "+" : "-"} {formatShort(Number(t.amount), t.currency)}
+                      {tx.type === "income" ? "+" : "-"} {formatShort(Number(tx.amount), tx.currency)}
                     </div>
                   </Link>
                 ))}

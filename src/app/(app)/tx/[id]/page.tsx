@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
 import { TransactionForm, type TransactionFormValues } from "@/components/TransactionForm";
 import { formatMoney } from "@/lib/currency";
+import { useT } from "@/lib/i18n";
 import { Trash2 } from "lucide-react";
 
 export default function TxDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { t } = useT();
   const { id } = use(params);
   const router = useRouter();
   const toast = useToast();
@@ -29,41 +31,41 @@ export default function TxDetail({ params }: { params: Promise<{ id: string }> }
   }, [id]);
 
   async function onDelete() {
-    if (!confirm("Hapus transaksi?")) return;
+    if (!confirm(t("tx.deleteConfirm"))) return;
     setBusy(true);
     const res = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
     setBusy(false);
     if (!res.ok) {
-      toast({ kind: "error", message: "Gagal hapus" });
+      toast({ kind: "error", message: t("toast.deleteFailed") });
       return;
     }
-    toast({ kind: "success", message: "Kehapus" });
+    toast({ kind: "success", message: t("tx.deleted") });
     router.push("/tx");
     router.refresh();
   }
 
-  if (!tx) return <div className="card p-5 text-sm text-slate-500">Loading…</div>;
+  if (!tx) return <div className="card p-5 text-sm text-slate-500">{t("loading")}</div>;
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold tracking-tight">Detail</h1>
+        <h1 className="text-xl font-bold tracking-tight">{t("tx.detail")}</h1>
         <button className="btn-ghost text-xs text-rose-600" onClick={onDelete} disabled={busy}>
-          <Trash2 className="h-3 w-3" /> Hapus
+          <Trash2 className="h-3 w-3" /> {t("delete")}
         </button>
       </div>
 
       <div className="card p-4 space-y-1 text-sm">
         <div className="flex justify-between">
-          <span className="text-slate-500">Amount</span>
+          <span className="text-slate-500">{t("tx.amountOrig")}</span>
           <span className="font-semibold">{formatMoney(tx.amount, tx.currency)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-slate-500">Equiv IDR</span>
+          <span className="text-slate-500">{t("tx.amountEquivIDR")}</span>
           <span>{formatMoney(tx.amountIDR, "IDR")}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-slate-500">Equiv MYR</span>
+          <span className="text-slate-500">{t("tx.amountEquivMYR")}</span>
           <span>{formatMoney(tx.amountMYR, "MYR")}</span>
         </div>
       </div>
@@ -76,10 +78,10 @@ export default function TxDetail({ params }: { params: Promise<{ id: string }> }
       )}
 
       <div className="card p-4">
-        <h2 className="mb-3 text-sm font-semibold">Edit</h2>
+        <h2 className="mb-3 text-sm font-semibold">{t("tx.edit")}</h2>
         <TransactionForm
           txId={id}
-          submitLabel="Update"
+          submitLabel={t("tx.updateBtn")}
           initial={{
             type: tx.type,
             accountId: (tx as unknown as { accountId: string }).accountId,

@@ -4,6 +4,7 @@ import { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
 import { formatMoney } from "@/lib/currency";
+import { useT } from "@/lib/i18n";
 import { Check, Trash2 } from "lucide-react";
 
 type ReceiptItem = {
@@ -29,6 +30,7 @@ type Option = { id: string; name: string; kind?: string; emoji?: string };
 type AccountOption = { id: string; name: string; currency: string; emoji: string };
 
 export default function ReceiptReviewPage({ params }: { params: Promise<{ id: string }> }) {
+  const { t } = useT();
   const { id } = use(params);
   const router = useRouter();
   const toast = useToast();
@@ -78,7 +80,7 @@ export default function ReceiptReviewPage({ params }: { params: Promise<{ id: st
   async function onConfirm(e: React.FormEvent) {
     e.preventDefault();
     if (!values.accountId || !values.categoryId || !values.amount) {
-      toast({ kind: "error", message: "Lengkapi akun, kategori, amount" });
+      toast({ kind: "error", message: t("toast.fill") });
       return;
     }
     setBusy(true);
@@ -95,10 +97,10 @@ export default function ReceiptReviewPage({ params }: { params: Promise<{ id: st
       });
       const data = await res.json();
       if (!res.ok) {
-        toast({ kind: "error", message: data?.error ?? "Gagal confirm" });
+        toast({ kind: "error", message: data?.error ?? t("toast.failed") });
         return;
       }
-      toast({ kind: "success", message: "Masuk catet keborosan 🫠" });
+      toast({ kind: "success", message: t("toast.receiptToTx") });
       router.push("/review");
       router.refresh();
     } finally {
@@ -107,20 +109,20 @@ export default function ReceiptReviewPage({ params }: { params: Promise<{ id: st
   }
 
   async function onDiscard() {
-    if (!confirm("Buang struk ini?")) return;
+    if (!confirm(t("review.discardConfirm"))) return;
     await fetch(`/api/receipts/${id}`, { method: "DELETE" });
     router.push("/review");
   }
 
-  if (!receipt) return <div className="card p-5 text-sm text-slate-500">Loading…</div>;
+  if (!receipt) return <div className="card p-5 text-sm text-slate-500">{t("loading")}</div>;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Review Struk</h1>
+        <h1 className="text-xl font-bold">{t("review.detailTitle")}</h1>
         {receipt.status !== "confirmed" && (
           <button className="btn-ghost text-xs text-rose-600" onClick={onDiscard}>
-            <Trash2 className="h-3 w-3" /> Buang
+            <Trash2 className="h-3 w-3" /> {t("review.discard")}
           </button>
         )}
       </div>
@@ -132,13 +134,13 @@ export default function ReceiptReviewPage({ params }: { params: Promise<{ id: st
 
       {receipt.status === "confirmed" ? (
         <div className="card p-5 text-sm text-emerald-700">
-          <Check className="h-5 w-5" /> Udah ter-confirm.
+          <Check className="h-5 w-5" /> {t("review.confirmed")}
         </div>
       ) : (
         <form className="card p-4 space-y-3" onSubmit={onConfirm}>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Amount</label>
+              <label className="label">{t("review.amount")}</label>
               <input
                 type="number"
                 step="0.01"
@@ -148,7 +150,7 @@ export default function ReceiptReviewPage({ params }: { params: Promise<{ id: st
               />
             </div>
             <div>
-              <label className="label">Currency</label>
+              <label className="label">{t("tx.currency")}</label>
               <select
                 className="input mt-1"
                 value={values.currency}
@@ -163,7 +165,7 @@ export default function ReceiptReviewPage({ params }: { params: Promise<{ id: st
           </div>
 
           <div>
-            <label className="label">Tanggal</label>
+            <label className="label">{t("review.date")}</label>
             <input
               type="date"
               className="input mt-1"
@@ -173,13 +175,13 @@ export default function ReceiptReviewPage({ params }: { params: Promise<{ id: st
           </div>
 
           <div>
-            <label className="label">Bayar dari</label>
+            <label className="label">{t("review.paidFrom")}</label>
             <select
               className="input mt-1"
               value={values.accountId}
               onChange={(e) => setValues((v) => ({ ...v, accountId: e.target.value }))}
             >
-              <option value="">— pilih —</option>
+              <option value="">{t("onb.f.pick")}</option>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.emoji} {a.name} ({a.currency})
@@ -189,13 +191,13 @@ export default function ReceiptReviewPage({ params }: { params: Promise<{ id: st
           </div>
 
           <div>
-            <label className="label">Kategori</label>
+            <label className="label">{t("review.category")}</label>
             <select
               className="input mt-1"
               value={values.categoryId}
               onChange={(e) => setValues((v) => ({ ...v, categoryId: e.target.value }))}
             >
-              <option value="">— pilih —</option>
+              <option value="">{t("onb.f.pick")}</option>
               {expenseCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.emoji} {c.name}
@@ -205,7 +207,7 @@ export default function ReceiptReviewPage({ params }: { params: Promise<{ id: st
           </div>
 
           <div>
-            <label className="label">Merchant</label>
+            <label className="label">{t("review.merchant")}</label>
             <input
               className="input mt-1"
               value={values.merchant}
@@ -214,7 +216,7 @@ export default function ReceiptReviewPage({ params }: { params: Promise<{ id: st
           </div>
 
           <div>
-            <label className="label">Catatan (opsional)</label>
+            <label className="label">{t("review.note")}</label>
             <textarea
               className="input mt-1 min-h-[64px]"
               value={values.note}
@@ -228,11 +230,11 @@ export default function ReceiptReviewPage({ params }: { params: Promise<{ id: st
               checked={values.isBoros}
               onChange={(e) => setValues((v) => ({ ...v, isBoros: e.target.checked }))}
             />
-            <span>🫠 Tandain ini transaksi kalap / boros</span>
+            <span>{t("review.borosTag")}</span>
           </label>
 
           <button type="submit" className="btn-primary w-full" disabled={busy}>
-            {busy ? "Nyimpen..." : "Confirm 🚀"}
+            {busy ? t("saving") : t("review.confirmBtn")}
           </button>
         </form>
       )}

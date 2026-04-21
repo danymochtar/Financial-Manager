@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatShort } from "@/lib/currency";
 import { ArrowRight, CheckCircle2, Clock } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 type Receipt = {
   id: string;
@@ -16,6 +17,7 @@ type Receipt = {
 };
 
 export default function ReviewPage() {
+  const { t, locale } = useT();
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,16 +33,16 @@ export default function ReviewPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Review Struk ✍️</h1>
-        <p className="text-sm text-slate-600">Konfirm atau edit hasil OCR biar masuk jadi transaksi.</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("review.title")}</h1>
+        <p className="text-sm text-slate-600">{t("review.desc")}</p>
       </div>
 
       {loading ? (
-        <div className="card p-4 text-sm text-slate-500">Loading…</div>
+        <div className="card p-4 text-sm text-slate-500">{t("loading")}</div>
       ) : receipts.length === 0 ? (
         <div className="card p-6 text-center text-sm text-slate-500">
           <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-500" />
-          Gak ada draft. Tap kamera buat catet struk baru.
+          {t("review.empty")}
         </div>
       ) : (
         <div className="space-y-2">
@@ -58,13 +60,13 @@ export default function ReviewPage() {
               />
               <div className="flex-1 min-w-0">
                 <div className="truncate text-sm font-semibold">
-                  {r.merchant ?? <span className="italic text-slate-400">Merchant gak ke-baca</span>}
+                  {r.merchant ?? <span className="italic text-slate-400">{t("review.merchantUnknown")}</span>}
                 </div>
                 <div className="text-xs text-slate-500 flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {r.date
-                    ? new Date(r.date).toLocaleDateString("id-ID")
-                    : new Date(r.createdAt).toLocaleDateString("id-ID")}
+                    ? new Date(r.date).toLocaleDateString(locale === "en" ? "en-US" : "id-ID")
+                    : new Date(r.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "id-ID")}
                   {r.totalAmount && r.currency && (
                     <span> · {formatShort(Number(r.totalAmount), r.currency)}</span>
                   )}

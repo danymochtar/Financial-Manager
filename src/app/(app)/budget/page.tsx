@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { formatShort } from "@/lib/currency";
+import { useT } from "@/lib/i18n";
 
 type Budget = {
   id: string;
@@ -17,6 +18,7 @@ type Budget = {
 type Category = { id: string; name: string; kind: string; emoji: string };
 
 export default function BudgetPage() {
+  const { t } = useT();
   const toast = useToast();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -50,15 +52,15 @@ export default function BudgetPage() {
     });
     if (!res.ok) {
       const d = await res.json();
-      toast({ kind: "error", message: d?.error ?? "Gagal" });
+      toast({ kind: "error", message: d?.error ?? t("toast.failed") });
       return;
     }
-    toast({ kind: "success", message: "Target ter-update" });
+    toast({ kind: "success", message: t("toast.saved") });
     load();
   }
 
   async function deleteBudget(id: string) {
-    if (!confirm("Hapus target?")) return;
+    if (!confirm(t("budget.deleteConfirm"))) return;
     // Budgets DELETE endpoint:
     await fetch(`/api/budgets/${id}`, { method: "DELETE" });
     load();
@@ -73,22 +75,20 @@ export default function BudgetPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Target Boros 🎯</h1>
-        <p className="text-sm text-slate-600">Set target harian/mingguan/bulanan biar ga kalap.</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("budget.title")}</h1>
+        <p className="text-sm text-slate-600">{t("budget.desc")}</p>
       </div>
 
       {loading ? (
-        <div className="card p-4 text-sm text-slate-500">Loading…</div>
+        <div className="card p-4 text-sm text-slate-500">{t("loading")}</div>
       ) : (
         <>
           <div className="card p-4 space-y-4">
-            <div className="text-sm font-semibold text-pink-700">Target Overall (IDR)</div>
+            <div className="text-sm font-semibold text-pink-700">{t("budget.overallIDR")}</div>
             {(["daily", "weekly", "monthly"] as const).map((p) => (
               <BudgetRow
                 key={`idr-${p}`}
-                label={
-                  p === "daily" ? "Harian" : p === "weekly" ? "Mingguan" : "Bulanan"
-                }
+                label={p === "daily" ? t("onb.b.daily") : p === "weekly" ? t("onb.b.weekly") : t("onb.b.monthly")}
                 current={overallByKey(p, "IDR")?.amount}
                 currency="IDR"
                 onSave={(v) => saveOverall(p, "IDR", v)}
@@ -102,11 +102,11 @@ export default function BudgetPage() {
           </div>
 
           <div className="card p-4 space-y-4">
-            <div className="text-sm font-semibold text-pink-700">Target Overall (MYR)</div>
+            <div className="text-sm font-semibold text-pink-700">{t("budget.overallMYR")}</div>
             {(["daily", "weekly", "monthly"] as const).map((p) => (
               <BudgetRow
                 key={`myr-${p}`}
-                label={p === "daily" ? "Harian" : p === "weekly" ? "Mingguan" : "Bulanan"}
+                label={p === "daily" ? t("onb.b.daily") : p === "weekly" ? t("onb.b.weekly") : t("onb.b.monthly")}
                 current={overallByKey(p, "MYR")?.amount}
                 currency="MYR"
                 onSave={(v) => saveOverall(p, "MYR", v)}
@@ -120,7 +120,7 @@ export default function BudgetPage() {
           </div>
 
           <div className="card p-4">
-            <div className="mb-3 text-sm font-semibold text-pink-700">Per Kategori</div>
+            <div className="mb-3 text-sm font-semibold text-pink-700">{t("budget.perCategory")}</div>
             <CategoryBudgetForm categories={expenseCats} onSaved={load} />
             {catBudgets.length > 0 && (
               <div className="mt-3 space-y-2">
@@ -203,6 +203,7 @@ function CategoryBudgetForm({
   categories: Category[];
   onSaved: () => void;
 }) {
+  const { t } = useT();
   const toast = useToast();
   const [form, setForm] = useState({
     categoryId: "",
@@ -225,7 +226,7 @@ function CategoryBudgetForm({
     });
     if (!res.ok) {
       const d = await res.json();
-      toast({ kind: "error", message: d?.error ?? "Gagal" });
+      toast({ kind: "error", message: d?.error ?? t("toast.failed") });
       return;
     }
     setForm({ ...form, amount: 0 });
@@ -238,7 +239,7 @@ function CategoryBudgetForm({
         value={form.categoryId}
         onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
       >
-        <option value="">— pilih kategori —</option>
+        <option value="">{t("wajib.form.selectCategory")}</option>
         {categories.map((c) => (
           <option key={c.id} value={c.id}>
             {c.emoji} {c.name}
@@ -250,9 +251,9 @@ function CategoryBudgetForm({
         value={form.period}
         onChange={(e) => setForm({ ...form, period: e.target.value as typeof form.period })}
       >
-        <option value="daily">Harian</option>
-        <option value="weekly">Mingguan</option>
-        <option value="monthly">Bulanan</option>
+        <option value="daily">{t("onb.b.daily")}</option>
+        <option value="weekly">{t("onb.b.weekly")}</option>
+        <option value="monthly">{t("onb.b.monthly")}</option>
       </select>
       <select
         className="input text-sm"
@@ -265,12 +266,12 @@ function CategoryBudgetForm({
       <input
         type="number"
         className="input text-sm col-span-2"
-        placeholder="Amount"
+        placeholder={t("wajib.form.amount")}
         value={form.amount || ""}
         onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })}
       />
       <button className="btn-primary col-span-2" onClick={add}>
-        Set budget
+        {t("budget.setBtn")}
       </button>
     </div>
   );

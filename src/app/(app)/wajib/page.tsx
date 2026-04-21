@@ -106,8 +106,8 @@ export default function WajibPage() {
     load();
   }, []);
 
-  async function remove(t: Tab, id: string) {
-    if (!confirm("Hapus?")) return;
+  async function remove(kind: Tab, id: string) {
+    if (!confirm(t("wajib.form.deleteConfirm"))) return;
     const map: Record<Tab, string> = {
       expense: "fixed-expenses",
       income: "fixed-incomes",
@@ -116,8 +116,8 @@ export default function WajibPage() {
       investment: "investments",
       goal: "goals",
     };
-    await fetch(`/api/${map[t]}/${id}`, { method: "DELETE" });
-    toast({ kind: "success", message: "Dihapus" });
+    await fetch(`/api/${map[kind]}/${id}`, { method: "DELETE" });
+    toast({ kind: "success", message: t("toast.deleted") });
     load();
   }
 
@@ -159,12 +159,12 @@ export default function WajibPage() {
         <ItemList
           items={expenses}
           emptyLabel="expense fix"
-          render={(e) => ({
-            emoji: e.category.emoji,
-            title: e.name,
-            sub: `${e.category.name} · tgl ${e.dayOfMonth ?? "-"}`,
-            amount: formatShort(Number(e.amount), e.currency),
-            onDelete: () => remove("expense", e.id),
+          render={(item) => ({
+            emoji: item.category.emoji,
+            title: item.name,
+            sub: `${item.category.name} · d ${item.dayOfMonth ?? "-"}`,
+            amount: formatShort(Number(item.amount), item.currency),
+            onDelete: () => remove("expense", item.id),
           })}
         />
       )}
@@ -172,13 +172,13 @@ export default function WajibPage() {
         <ItemList
           items={incomes}
           emptyLabel="income fix"
-          render={(i) => ({
+          render={(item) => ({
             emoji: "💰",
-            title: i.name,
-            sub: `${i.account?.name ?? "—"} · tgl ${i.dayOfMonth ?? "-"}`,
-            amount: `+${formatShort(Number(i.amount), i.currency)}`,
+            title: item.name,
+            sub: `${item.account?.name ?? "—"} · d ${item.dayOfMonth ?? "-"}`,
+            amount: `+${formatShort(Number(item.amount), item.currency)}`,
             amountColor: "emerald",
-            onDelete: () => remove("income", i.id),
+            onDelete: () => remove("income", item.id),
           })}
         />
       )}
@@ -186,12 +186,12 @@ export default function WajibPage() {
         <ItemList
           items={debts}
           emptyLabel="cicilan"
-          render={(d) => ({
+          render={(item) => ({
             emoji: "⛓️",
-            title: d.name,
-            sub: `sisa ${formatShort(Number(d.remainingAmount), d.currency)}`,
-            amount: `${formatShort(Number(d.monthlyPayment), d.currency)}/bln`,
-            onDelete: () => remove("debt", d.id),
+            title: item.name,
+            sub: `${formatShort(Number(item.remainingAmount), item.currency)}`,
+            amount: `${formatShort(Number(item.monthlyPayment), item.currency)}/mo`,
+            onDelete: () => remove("debt", item.id),
           })}
         />
       )}
@@ -204,7 +204,7 @@ export default function WajibPage() {
               DEPENDENT_RELATIONSHIPS.find((r) => r.value === dep.relationship)?.emoji ?? "👤",
             title: dep.name,
             sub: DEPENDENT_RELATIONSHIPS.find((r) => r.value === dep.relationship)?.label ?? "-",
-            amount: `${formatShort(Number(dep.monthlyAmount), dep.currency)}/bln`,
+            amount: `${formatShort(Number(dep.monthlyAmount), dep.currency)}/mo`,
             onDelete: () => remove("dependent", dep.id),
           })}
         />
@@ -216,7 +216,7 @@ export default function WajibPage() {
           render={(inv) => ({
             emoji: inv.emoji,
             title: inv.name,
-            sub: `${inv.type.replace("_", " ")}${inv.platform ? ` · ${inv.platform}` : ""}`,
+            sub: `${t(`wajib.type.${inv.type}`)}${inv.platform ? ` · ${inv.platform}` : ""}`,
             amount: formatShort(Number(inv.currentValue), inv.currency),
             amountColor: "emerald",
             onDelete: () => remove("investment", inv.id),
@@ -262,7 +262,7 @@ export default function WajibPage() {
 }
 
 function priorityLabel(p: number) {
-  return p === 1 ? "HIGH" : p === 3 ? "low" : "normal";
+  return p === 1 ? "HIGH" : p === 3 ? "LOW" : "normal";
 }
 
 function ItemList<T extends { id: string }>({
@@ -281,8 +281,9 @@ function ItemList<T extends { id: string }>({
     onDelete: () => void;
   };
 }) {
+  const { t } = useT();
   if (items.length === 0) {
-    return <div className="card p-4 text-sm text-slate-500">Belum ada {emptyLabel}.</div>;
+    return <div className="card p-4 text-sm text-slate-500">{t("wajib.item.empty")} — {emptyLabel}.</div>;
   }
   return (
     <div className="space-y-2">
@@ -323,6 +324,13 @@ function AddSheet({
   onClose: () => void;
   onAdded: () => void;
 }) {
+  const { t } = useT();
+  const title =
+    tab === "investment"
+      ? t("wajib.addInvestment")
+      : tab === "goal"
+      ? t("wajib.addGoal")
+      : t("wajib.addTitle");
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4" onClick={onClose}>
       <div
@@ -330,9 +338,7 @@ function AddSheet({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <div className="text-lg font-bold">
-            Tambah {tab === "investment" ? "Investasi" : tab === "goal" ? "Target" : "baru"}
-          </div>
+          <div className="text-lg font-bold">{title}</div>
           <button onClick={onClose} className="text-slate-400">
             <X className="h-5 w-5" />
           </button>
@@ -349,6 +355,7 @@ function AddSheet({
 }
 
 function FixedExpenseForm({ categories, onAdded }: { categories: Category[]; onAdded: () => void }) {
+  const { t } = useT();
   const toast = useToast();
   const [name, setName] = useState("");
   const [amount, setAmount] = useState(0);
@@ -385,33 +392,33 @@ function FixedExpenseForm({ categories, onAdded }: { categories: Category[]; onA
     });
     if (!res.ok) {
       const d = await res.json();
-      toast({ kind: "error", message: d?.error ?? "Gagal" });
+      toast({ kind: "error", message: d?.error ?? t("toast.failed") });
       return;
     }
-    toast({ kind: "success", message: "Tersimpan" });
+    toast({ kind: "success", message: t("toast.saved") });
     onAdded();
   }
 
   return (
     <form className="space-y-2" onSubmit={submit}>
       <div>
-        <div className="label mb-1">Template cepet</div>
+        <div className="label mb-1">{t("wajib.form.templateQuick")}</div>
         <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-          {FIXED_EXPENSE_TEMPLATES.map((t) => (
+          {FIXED_EXPENSE_TEMPLATES.map((tpl) => (
             <button
-              key={t.name}
+              key={tpl.name}
               type="button"
-              onClick={() => useTemplate(t)}
+              onClick={() => useTemplate(tpl)}
               className="chip"
             >
-              {t.emoji} {t.name}
+              {tpl.emoji} {tpl.name}
             </button>
           ))}
         </div>
       </div>
       <input
         className="input text-sm"
-        placeholder="Nama"
+        placeholder={t("wajib.form.name")}
         required
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -423,7 +430,7 @@ function FixedExpenseForm({ categories, onAdded }: { categories: Category[]; onA
           min={1}
           max={31}
           className="input text-sm"
-          placeholder="Tgl bayar"
+          placeholder={t("wajib.form.payDay")}
           value={dayOfMonth}
           onChange={(e) => setDayOfMonth(Number(e.target.value))}
         />
@@ -435,7 +442,7 @@ function FixedExpenseForm({ categories, onAdded }: { categories: Category[]; onA
         required
         onChange={(e) => setCategoryId(e.target.value)}
       >
-        <option value="">— kategori —</option>
+        <option value="">{t("wajib.form.category")}</option>
         {fixedCats.map((c) => (
           <option key={c.id} value={c.id}>
             {c.emoji} {c.name}
@@ -443,13 +450,14 @@ function FixedExpenseForm({ categories, onAdded }: { categories: Category[]; onA
         ))}
       </select>
       <button type="submit" className="btn-primary w-full">
-        Simpan
+        {t("save")}
       </button>
     </form>
   );
 }
 
 function IncomeForm({ onAdded }: { onAdded: () => void }) {
+  const { t } = useT();
   const toast = useToast();
   const [name, setName] = useState("");
   const [amount, setAmount] = useState(0);
@@ -472,7 +480,7 @@ function IncomeForm({ onAdded }: { onAdded: () => void }) {
       }),
     });
     if (!res.ok) {
-      toast({ kind: "error", message: "Gagal" });
+      toast({ kind: "error", message: t("toast.failed") });
       return;
     }
     onAdded();
@@ -481,7 +489,7 @@ function IncomeForm({ onAdded }: { onAdded: () => void }) {
     <form className="space-y-2" onSubmit={submit}>
       <input
         className="input text-sm"
-        placeholder="Nama (contoh: Gaji Kerjaan Malaysia)"
+        placeholder={t("wajib.form.incomeNameHint")}
         required
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -493,20 +501,21 @@ function IncomeForm({ onAdded }: { onAdded: () => void }) {
           min={1}
           max={31}
           className="input text-sm"
-          placeholder="Tgl gajian"
+          placeholder={t("wajib.form.payDate")}
           value={dayOfMonth}
           onChange={(e) => setDayOfMonth(Number(e.target.value))}
         />
       </div>
       <MoneyInput value={amount} onChange={setAmount} currency={currency} />
       <button type="submit" className="btn-primary w-full">
-        Simpan
+        {t("save")}
       </button>
     </form>
   );
 }
 
 function DebtForm({ onAdded }: { onAdded: () => void }) {
+  const { t } = useT();
   const toast = useToast();
   const [name, setName] = useState("");
   const [remaining, setRemaining] = useState(0);
@@ -527,7 +536,7 @@ function DebtForm({ onAdded }: { onAdded: () => void }) {
       }),
     });
     if (!res.ok) {
-      toast({ kind: "error", message: "Gagal" });
+      toast({ kind: "error", message: t("toast.failed") });
       return;
     }
     onAdded();
@@ -535,44 +544,45 @@ function DebtForm({ onAdded }: { onAdded: () => void }) {
   return (
     <form className="space-y-2" onSubmit={submit}>
       <div>
-        <div className="label mb-1">Template</div>
+        <div className="label mb-1">{t("wajib.form.template")}</div>
         <div className="flex flex-wrap gap-1.5">
-          {DEBT_TEMPLATES.map((t) => (
+          {DEBT_TEMPLATES.map((tpl) => (
             <button
-              key={t.name}
+              key={tpl.name}
               type="button"
-              onClick={() => setName(t.name)}
+              onClick={() => setName(tpl.name)}
               className="chip"
             >
-              {t.emoji} {t.name}
+              {tpl.emoji} {tpl.name}
             </button>
           ))}
         </div>
       </div>
       <input
         className="input text-sm"
-        placeholder="Nama"
+        placeholder={t("wajib.form.name")}
         required
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
       <CurrencySelect value={currency} onChange={setCurrency} />
       <div>
-        <label className="label">Sisa hutang</label>
+        <label className="label">{t("wajib.form.remaining")}</label>
         <MoneyInput value={remaining} onChange={setRemaining} currency={currency} />
       </div>
       <div>
-        <label className="label">Cicilan / bulan</label>
+        <label className="label">{t("wajib.form.monthly")}</label>
         <MoneyInput value={monthly} onChange={setMonthly} currency={currency} />
       </div>
       <button type="submit" className="btn-primary w-full">
-        Simpan
+        {t("save")}
       </button>
     </form>
   );
 }
 
 function DependentForm({ onAdded }: { onAdded: () => void }) {
+  const { t } = useT();
   const toast = useToast();
   const [name, setName] = useState("");
   const [relationship, setRelationship] = useState("parent");
@@ -587,7 +597,7 @@ function DependentForm({ onAdded }: { onAdded: () => void }) {
       body: JSON.stringify({ name, relationship, monthlyAmount: monthly, currency }),
     });
     if (!res.ok) {
-      toast({ kind: "error", message: "Gagal" });
+      toast({ kind: "error", message: t("toast.failed") });
       return;
     }
     onAdded();
@@ -596,7 +606,7 @@ function DependentForm({ onAdded }: { onAdded: () => void }) {
     <form className="space-y-2" onSubmit={submit}>
       <input
         className="input text-sm"
-        placeholder="Nama (contoh: Mama)"
+        placeholder={t("onb.f.nameDep")}
         required
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -617,13 +627,14 @@ function DependentForm({ onAdded }: { onAdded: () => void }) {
       </div>
       <MoneyInput value={monthly} onChange={setMonthly} currency={currency} />
       <button type="submit" className="btn-primary w-full">
-        Simpan
+        {t("save")}
       </button>
     </form>
   );
 }
 
 function InvestmentForm({ onAdded }: { onAdded: () => void }) {
+  const { t } = useT();
   const toast = useToast();
   const [name, setName] = useState("");
   const [type, setType] = useState<"gold" | "crypto" | "stock" | "mutual_fund" | "forex" | "deposit" | "bond" | "property" | "other">("gold");
@@ -657,32 +668,34 @@ function InvestmentForm({ onAdded }: { onAdded: () => void }) {
       }),
     });
     if (!res.ok) {
-      toast({ kind: "error", message: "Gagal" });
+      toast({ kind: "error", message: t("toast.failed") });
       return;
     }
     onAdded();
   }
 
+  const typeLabel = (typ: typeof type) => t(`wajib.type.${typ}`);
+
   return (
     <form className="space-y-2" onSubmit={submit}>
       <div>
-        <div className="label mb-1">Template</div>
+        <div className="label mb-1">{t("wajib.form.template")}</div>
         <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-          {INVESTMENT_TEMPLATES.map((t) => (
+          {INVESTMENT_TEMPLATES.map((tpl) => (
             <button
-              key={t.name}
+              key={tpl.name}
               type="button"
-              onClick={() => useTemplate(t)}
+              onClick={() => useTemplate(tpl)}
               className="chip"
             >
-              {t.emoji} {t.name}
+              {tpl.emoji} {tpl.name}
             </button>
           ))}
         </div>
       </div>
       <input
         className="input text-sm"
-        placeholder="Nama (contoh: BBCA, Emas Antam)"
+        placeholder={t("wajib.form.investNameHint")}
         required
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -693,36 +706,37 @@ function InvestmentForm({ onAdded }: { onAdded: () => void }) {
           value={type}
           onChange={(e) => setType(e.target.value as typeof type)}
         >
-          <option value="gold">Emas</option>
-          <option value="crypto">Crypto</option>
-          <option value="stock">Saham</option>
-          <option value="mutual_fund">Reksadana</option>
-          <option value="forex">Forex</option>
-          <option value="deposit">Deposito</option>
-          <option value="bond">Obligasi</option>
-          <option value="property">Properti</option>
-          <option value="other">Lainnya</option>
+          <option value="gold">{typeLabel("gold")}</option>
+          <option value="crypto">{typeLabel("crypto")}</option>
+          <option value="stock">{typeLabel("stock")}</option>
+          <option value="mutual_fund">{typeLabel("mutual_fund")}</option>
+          <option value="forex">{typeLabel("forex")}</option>
+          <option value="deposit">{typeLabel("deposit")}</option>
+          <option value="bond">{typeLabel("bond")}</option>
+          <option value="property">{typeLabel("property")}</option>
+          <option value="other">{typeLabel("other")}</option>
         </select>
         <CurrencySelect value={currency} onChange={setCurrency} />
       </div>
       <input
         className="input text-sm"
-        placeholder="Platform (contoh: Pluang, Ajaib)"
+        placeholder={t("wajib.form.platform")}
         value={platform}
         onChange={(e) => setPlatform(e.target.value)}
       />
       <div>
-        <label className="label">Nilai saat ini</label>
+        <label className="label">{t("wajib.form.currentValue")}</label>
         <MoneyInput value={value} onChange={setValue} currency={currency} />
       </div>
       <button type="submit" className="btn-primary w-full">
-        Simpan
+        {t("save")}
       </button>
     </form>
   );
 }
 
 function GoalForm({ onAdded }: { onAdded: () => void }) {
+  const { t } = useT();
   const toast = useToast();
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState("🎯");
@@ -756,7 +770,7 @@ function GoalForm({ onAdded }: { onAdded: () => void }) {
       }),
     });
     if (!res.ok) {
-      toast({ kind: "error", message: "Gagal" });
+      toast({ kind: "error", message: t("toast.failed") });
       return;
     }
     onAdded();
@@ -765,16 +779,16 @@ function GoalForm({ onAdded }: { onAdded: () => void }) {
   return (
     <form className="space-y-2" onSubmit={submit}>
       <div>
-        <div className="label mb-1">Template target hidup</div>
+        <div className="label mb-1">{t("wajib.form.lifeTemplate")}</div>
         <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-          {GOAL_TEMPLATES.map((t) => (
+          {GOAL_TEMPLATES.map((tpl) => (
             <button
-              key={t.name}
+              key={tpl.name}
               type="button"
-              onClick={() => useTemplate(t)}
+              onClick={() => useTemplate(tpl)}
               className="chip"
             >
-              {t.emoji} {t.name}
+              {tpl.emoji} {tpl.name}
             </button>
           ))}
         </div>
@@ -789,7 +803,7 @@ function GoalForm({ onAdded }: { onAdded: () => void }) {
         />
         <input
           className="input text-sm"
-          placeholder="Nama goal"
+          placeholder={t("wajib.form.goalName")}
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -797,16 +811,16 @@ function GoalForm({ onAdded }: { onAdded: () => void }) {
       </div>
       <CurrencySelect value={currency} onChange={setCurrency} />
       <div>
-        <label className="label">Target dana</label>
+        <label className="label">{t("wajib.form.goalTarget")}</label>
         <MoneyInput value={target} onChange={setTarget} currency={currency} />
       </div>
       <div>
-        <label className="label">Udah nabung berapa?</label>
+        <label className="label">{t("wajib.form.goalSaved")}</label>
         <MoneyInput value={saved} onChange={setSaved} currency={currency} />
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="label">Deadline (opsional)</label>
+          <label className="label">{t("wajib.form.goalDeadline")}</label>
           <input
             type="date"
             className="input text-sm"
@@ -815,20 +829,20 @@ function GoalForm({ onAdded }: { onAdded: () => void }) {
           />
         </div>
         <div>
-          <label className="label">Priority</label>
+          <label className="label">{t("wajib.form.goalPriority")}</label>
           <select
             className="input text-sm"
             value={priority}
             onChange={(e) => setPriority(Number(e.target.value))}
           >
-            <option value={1}>🔥 High</option>
-            <option value={2}>Normal</option>
-            <option value={3}>Low</option>
+            <option value={1}>{t("wajib.form.priorityHigh")}</option>
+            <option value={2}>{t("wajib.form.priorityNormal")}</option>
+            <option value={3}>{t("wajib.form.priorityLow")}</option>
           </select>
         </div>
       </div>
       <button type="submit" className="btn-primary w-full">
-        Simpan target
+        {t("wajib.form.saveGoal")}
       </button>
     </form>
   );

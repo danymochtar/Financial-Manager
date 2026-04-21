@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
+import { useT } from "@/lib/i18n";
 
 type Option = { id: string; name: string; kind?: string; emoji?: string; currency?: string };
 
@@ -20,7 +21,7 @@ export type TransactionFormValues = {
 
 export function TransactionForm({
   initial,
-  submitLabel = "Simpan",
+  submitLabel,
   txId,
   onSuccess,
 }: {
@@ -29,8 +30,10 @@ export function TransactionForm({
   txId?: string;
   onSuccess?: () => void;
 }) {
+  const { t } = useT();
   const router = useRouter();
   const toast = useToast();
+  const saveLabel = submitLabel ?? t("save");
   const [accounts, setAccounts] = useState<Option[]>([]);
   const [categories, setCategories] = useState<Option[]>([]);
   const [values, setValues] = useState<TransactionFormValues>({
@@ -69,7 +72,7 @@ export function TransactionForm({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!values.accountId || !values.categoryId || !values.amount) {
-      toast({ kind: "error", message: "Lengkapi akun, kategori, amount" });
+      toast({ kind: "error", message: t("toast.fill") });
       return;
     }
     setBusy(true);
@@ -88,10 +91,10 @@ export function TransactionForm({
       });
       const data = await res.json();
       if (!res.ok) {
-        toast({ kind: "error", message: data?.error ?? "Gagal simpan" });
+        toast({ kind: "error", message: data?.error ?? t("toast.saveFailed") });
         return;
       }
-      toast({ kind: "success", message: "Tercatat 🫠" });
+      toast({ kind: "success", message: t("tx.savedToast") });
       if (onSuccess) onSuccess();
       else {
         router.push("/tx");
@@ -105,27 +108,27 @@ export function TransactionForm({
   return (
     <form className="space-y-3" onSubmit={onSubmit}>
       <div className="flex gap-2">
-        {(["expense", "income"] as const).map((t) => (
+        {(["expense", "income"] as const).map((type) => (
           <button
-            key={t}
+            key={type}
             type="button"
-            onClick={() => setValues((v) => ({ ...v, type: t, categoryId: "" }))}
+            onClick={() => setValues((v) => ({ ...v, type, categoryId: "" }))}
             className={`flex-1 rounded-full border px-3 py-2 text-sm font-medium ${
-              values.type === t
-                ? t === "expense"
+              values.type === type
+                ? type === "expense"
                   ? "border-rose-300 bg-rose-50 text-rose-700"
                   : "border-emerald-300 bg-emerald-50 text-emerald-700"
                 : "border-pink-100 bg-white text-slate-600"
             }`}
           >
-            {t === "expense" ? "Pengeluaran" : "Pemasukan"}
+            {type === "expense" ? t("tx.typeExpense") : t("tx.typeIncome")}
           </button>
         ))}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="label">Amount</label>
+          <label className="label">{t("review.amount")}</label>
           <input
             type="number"
             step="0.01"
@@ -137,7 +140,7 @@ export function TransactionForm({
           />
         </div>
         <div>
-          <label className="label">Currency</label>
+          <label className="label">{t("tx.currency")}</label>
           <select
             className="input mt-1"
             value={values.currency}
@@ -154,7 +157,7 @@ export function TransactionForm({
       </div>
 
       <div>
-        <label className="label">Tanggal</label>
+        <label className="label">{t("tx.date")}</label>
         <input
           type="date"
           className="input mt-1"
@@ -165,14 +168,14 @@ export function TransactionForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="label">Akun</label>
+          <label className="label">{t("tx.pickAccount")}</label>
           <select
             required
             className="input mt-1"
             value={values.accountId}
             onChange={(e) => setValues((v) => ({ ...v, accountId: e.target.value }))}
           >
-            <option value="">— pilih —</option>
+            <option value="">{t("onb.f.pick")}</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.emoji ?? ""} {a.name} {a.currency ? `(${a.currency})` : ""}
@@ -181,14 +184,14 @@ export function TransactionForm({
           </select>
         </div>
         <div>
-          <label className="label">Kategori</label>
+          <label className="label">{t("tx.pickCategory")}</label>
           <select
             required
             className="input mt-1"
             value={values.categoryId}
             onChange={(e) => setValues((v) => ({ ...v, categoryId: e.target.value }))}
           >
-            <option value="">— pilih —</option>
+            <option value="">{t("onb.f.pick")}</option>
             {filteredCategories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.emoji ?? ""} {c.name}
@@ -199,17 +202,17 @@ export function TransactionForm({
       </div>
 
       <div>
-        <label className="label">Merchant (opsional)</label>
+        <label className="label">{t("tx.merchant")}</label>
         <input
           className="input mt-1"
           value={values.merchant ?? ""}
           onChange={(e) => setValues((v) => ({ ...v, merchant: e.target.value }))}
-          placeholder="Grab, Starbucks, Indomaret..."
+          placeholder={t("tx.merchantHint")}
         />
       </div>
 
       <div>
-        <label className="label">Catatan</label>
+        <label className="label">{t("tx.note")}</label>
         <textarea
           className="input mt-1 min-h-[64px]"
           value={values.note ?? ""}
@@ -224,12 +227,12 @@ export function TransactionForm({
             checked={values.isBoros}
             onChange={(e) => setValues((v) => ({ ...v, isBoros: e.target.checked }))}
           />
-          <span>🫠 Tandain ini transaksi kalap</span>
+          <span>{t("tx.isBoros")}</span>
         </label>
       )}
 
       <button type="submit" className="btn-primary w-full" disabled={busy}>
-        {busy ? "Nyimpen..." : submitLabel}
+        {busy ? t("saving") : saveLabel}
       </button>
     </form>
   );
