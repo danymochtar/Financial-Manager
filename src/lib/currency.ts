@@ -27,16 +27,28 @@ export function formatMoney(
   return getFormatter(currency, locale).format(num);
 }
 
+/** Kompak: Rp 1,2jt / RM 1,2k / Rp 12rb */
+export function formatShort(amount: number, currency: string): string {
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? "-" : "";
+  const symbol = currency === "IDR" ? "Rp" : currency === "MYR" ? "RM" : currency;
+  if (currency === "IDR") {
+    if (abs >= 1_000_000_000) return `${sign}${symbol} ${(abs / 1_000_000_000).toFixed(1)}M`;
+    if (abs >= 1_000_000) return `${sign}${symbol} ${(abs / 1_000_000).toFixed(1)}jt`;
+    if (abs >= 1_000) return `${sign}${symbol} ${(abs / 1_000).toFixed(0)}rb`;
+    return `${sign}${symbol} ${abs.toFixed(0)}`;
+  }
+  if (abs >= 1_000_000) return `${sign}${symbol} ${(abs / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `${sign}${symbol} ${(abs / 1_000).toFixed(1)}K`;
+  return `${sign}${symbol} ${abs.toFixed(2)}`;
+}
+
 export function toNumber(value: Prisma.Decimal | number | string | null | undefined): number {
   if (value == null) return 0;
   if (typeof value === "number") return value;
   return Number(value.toString());
 }
 
-/**
- * Sum a list of transactions using the appropriate pre-computed column
- * (amountIDR or amountMYR) for the target base currency.
- */
 export function sumInBase(
   txs: Array<{ amountIDR: Prisma.Decimal; amountMYR: Prisma.Decimal; type: string }>,
   currency: "IDR" | "MYR",

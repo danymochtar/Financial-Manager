@@ -16,20 +16,17 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   const user = await getAuthedUser();
   if (!user) return unauthorized();
-
   try {
     const form = await req.formData();
     const file = form.get("file");
-    if (!(file instanceof File)) {
-      return badRequest(new Error("file field required"));
-    }
+    const batchId = form.get("batchId") as string | null;
+    if (!(file instanceof File)) return badRequest(new Error("file required"));
     const mimeType = file.type || "image/jpeg";
     if (!ALLOWED_IMAGE_MIMES.includes(mimeType)) {
       return badRequest(new Error(`Unsupported mime type: ${mimeType}`));
     }
-    if (file.size > MAX_IMAGE_BYTES) {
-      return badRequest(new Error("File too large (max 10MB)"));
-    }
+    if (file.size > MAX_IMAGE_BYTES) return badRequest(new Error("File too large (max 10MB)"));
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const saved = await saveReceiptImage(user.id, mimeType, buffer);
 
@@ -65,6 +62,7 @@ export async function POST(req: Request) {
         currency: draft?.currency ?? null,
         date: draft?.date ? new Date(draft.date) : null,
         status: "draft",
+        batchId: batchId || null,
         items: draft?.items?.length
           ? {
               create: draft.items.map((i) => ({

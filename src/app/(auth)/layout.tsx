@@ -1,11 +1,13 @@
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 bg-gradient-to-br from-brand-50 via-white to-slate-100">
+    <div className="mx-auto flex min-h-[100dvh] max-w-app flex-col items-center justify-center bg-gradient-to-b from-pink-50 via-orange-50 to-white px-5 py-8 safe-t safe-b">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-2 h-10 w-10 rounded-xl bg-brand-600" />
-          <h1 className="text-xl font-semibold">Financial Manager</h1>
-          <p className="text-sm text-slate-600">Track duit masuk & keluar, lintas MYR &amp; IDR.</p>
+          <div className="mx-auto mb-2 text-4xl">🫠</div>
+          <h1 className="text-2xl font-bold tracking-tight">Seberapa Boros Lo?</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Catet keborosan, sadar, terus nabung.
+          </p>
         </div>
         {children}
       </div>

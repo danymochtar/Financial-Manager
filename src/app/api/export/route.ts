@@ -27,25 +27,24 @@ export async function GET(req: Request) {
 
   const txs = await prisma.transaction.findMany({
     where,
-    include: { source: true, category: true },
+    include: { account: true, category: true },
     orderBy: { date: "desc" },
   });
 
   const rows: ExportRow[] = txs.map((t) => ({
     date: t.date.toISOString().slice(0, 10),
     type: t.type,
-    source: t.source?.name ?? "",
+    source: t.account?.name ?? "",
     category: t.category?.name ?? "",
     merchant: t.merchant ?? "",
     amount: toNumber(t.amount).toString(),
     currency: t.currency,
     amountIDR: toNumber(t.amountIDR).toString(),
     amountMYR: toNumber(t.amountMYR).toString(),
-    note: t.note ?? "",
+    note: (t.isBoros ? "[BOROS] " : "") + (t.note ?? ""),
   }));
 
-  const filename = `transactions-${new Date().toISOString().slice(0, 10)}`;
-
+  const filename = `seberapa-boros-${new Date().toISOString().slice(0, 10)}`;
   if (format === "xlsx") {
     const buf = await toXlsx(rows);
     return new Response(new Uint8Array(buf), {
@@ -55,7 +54,6 @@ export async function GET(req: Request) {
       },
     });
   }
-
   const csv = toCsv(rows);
   return new Response(csv, {
     headers: {

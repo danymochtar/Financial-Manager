@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { DEFAULT_CATEGORIES, DEFAULT_SOURCES } from "@/lib/categories";
+import { DEFAULT_CATEGORIES } from "@/lib/categories";
 
 const bodySchema = z.object({
   email: z.string().email(),
@@ -31,9 +31,6 @@ export async function POST(req: Request) {
 
   await prisma.category.createMany({
     data: DEFAULT_CATEGORIES.map((c) => ({ ...c, userId: user.id })),
-  });
-  await prisma.source.createMany({
-    data: DEFAULT_SOURCES.map((s) => ({ ...s, userId: user.id })),
   });
 
   return NextResponse.json({ ok: true, userId: user.id });

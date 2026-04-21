@@ -18,14 +18,10 @@ function LoginForm() {
     e.preventDefault();
     setError(null);
     setBusy(true);
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    const res = await signIn("credentials", { email, password, redirect: false });
     setBusy(false);
     if (res?.error) {
-      setError("Email atau password salah.");
+      setError("Email atau password-nya salah bestie.");
       return;
     }
     router.push(callbackUrl);
@@ -33,12 +29,11 @@ function LoginForm() {
   }
 
   return (
-    <div className="card p-6">
+    <div className="card p-5">
       <form className="space-y-3" onSubmit={onSubmit}>
         <div>
-          <label className="label" htmlFor="email">Email</label>
+          <label className="label">Email</label>
           <input
-            id="email"
             type="email"
             autoComplete="email"
             required
@@ -48,9 +43,8 @@ function LoginForm() {
           />
         </div>
         <div>
-          <label className="label" htmlFor="password">Password</label>
+          <label className="label">Password</label>
           <input
-            id="password"
             type="password"
             autoComplete="current-password"
             required
@@ -59,15 +53,15 @@ function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-rose-600">{error}</p>}
         <button type="submit" className="btn-primary w-full" disabled={busy}>
-          {busy ? "Login..." : "Login"}
+          {busy ? "Login..." : "Masuk"}
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-slate-600">
         Belum punya akun?{" "}
-        <Link href="/register" className="font-medium text-brand-700 hover:underline">
-          Register dulu
+        <Link href="/register" className="font-semibold text-pink-700">
+          Bikin akun
         </Link>
       </p>
     </div>
@@ -76,7 +70,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="card p-6 text-sm text-slate-500">Loading...</div>}>
+    <Suspense fallback={<div className="card p-5 text-sm text-slate-500">Loading...</div>}>
       <LoginForm />
     </Suspense>
   );

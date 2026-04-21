@@ -11,16 +11,17 @@ export async function GET() {
   const budgets = await prisma.budget.findMany({
     where: { userId: user.id },
     include: { category: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ scope: "asc" }, { period: "asc" }],
   });
   return NextResponse.json({ budgets });
 }
 
 const schema = z.object({
-  categoryId: z.string().min(1),
+  scope: z.enum(["overall", "category"]),
+  categoryId: z.string().nullable().optional(),
   amount: z.number().positive(),
   currency: z.enum(SUPPORTED_CURRENCIES),
-  period: z.enum(["monthly"]).default("monthly"),
+  period: z.enum(["daily", "weekly", "monthly"]),
   startDate: z.string().optional(),
 });
 
@@ -29,30 +30,45 @@ export async function POST(req: Request) {
   if (!user) return unauthorized();
   try {
     const data = schema.parse(await req.json());
-    const category = await prisma.category.findFirst({
-      where: { id: data.categoryId, userId: user.id, kind: "expense" },
-    });
-    if (!category) return badRequest(new Error("Kategori expense tidak ditemukan"));
+    if (data.scope === "category" && !data.categoryId) {
+      return badRequest(new Error("categoryId wajib untuk scope category"));
+    }
+    if (data.categoryId) {
+      const cat = await prisma.category.findFirst({
+        where: { id: data.categoryId, userId: user.id, kind: "expense" },
+      });
+      if (!cat) return badRequest(new Error("Kategori expense gak ketemu"));
+    }
     const startDate = data.startDate ? new Date(data.startDate) : new Date();
-    const budget = await prisma.budget.upsert({
+    const categoryId = data.scope === "category" ? (data.categoryId ?? null) : null;
+
+    // Manual find + update/create because categoryId can be null and Prisma's
+    // unique compound upsert doesn't handle nullable fields cleanly.
+    const existing = await prisma.budget.findFirst({
       where: {
-        userId_categoryId_period_currency: {
-          userId: user.id,
-          categoryId: data.categoryId,
-          period: data.period,
-          currency: data.currency,
-        },
-      },
-      create: {
         userId: user.id,
-        categoryId: data.categoryId,
-        amount: new Prisma.Decimal(data.amount),
-        currency: data.currency,
+        scope: data.scope,
+        categoryId,
         period: data.period,
-        startDate,
+        currency: data.currency,
       },
-      update: { amount: new Prisma.Decimal(data.amount), startDate },
     });
+    const budget = existing
+      ? await prisma.budget.update({
+          where: { id: existing.id },
+          data: { amount: new Prisma.Decimal(data.amount), startDate },
+        })
+      : await prisma.budget.create({
+          data: {
+            userId: user.id,
+            scope: data.scope,
+            categoryId,
+            amount: new Prisma.Decimal(data.amount),
+            currency: data.currency,
+            period: data.period,
+            startDate,
+          },
+        });
     return NextResponse.json({ budget });
   } catch (err) {
     if (err instanceof z.ZodError) return badRequest(err);

@@ -7,7 +7,7 @@ import { computeDualBase } from "@/lib/fx";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 const updateSchema = z.object({
-  sourceId: z.string().optional(),
+  accountId: z.string().optional(),
   categoryId: z.string().optional(),
   type: z.enum(["income", "expense"]).optional(),
   amount: z.number().positive().optional(),
@@ -15,6 +15,7 @@ const updateSchema = z.object({
   date: z.string().optional(),
   merchant: z.string().max(160).nullable().optional(),
   note: z.string().max(500).nullable().optional(),
+  isBoros: z.boolean().optional(),
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -23,7 +24,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const tx = await prisma.transaction.findFirst({
     where: { id, userId: user.id },
-    include: { source: true, category: true, receipt: { include: { items: true } } },
+    include: { account: true, category: true, receipt: { include: { items: true } } },
   });
   if (!tx) return notFound();
   return NextResponse.json({ transaction: tx });
@@ -55,7 +56,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const updated = await prisma.transaction.update({
       where: { id },
       data: {
-        sourceId: data.sourceId,
+        accountId: data.accountId,
         categoryId: data.categoryId,
         type: data.type,
         amount: data.amount !== undefined ? new Prisma.Decimal(data.amount) : undefined,
@@ -65,6 +66,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         date: data.date ? nextDate : undefined,
         merchant: data.merchant,
         note: data.note,
+        isBoros: data.isBoros,
       },
     });
     return NextResponse.json({ transaction: updated });
@@ -80,6 +82,17 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const existing = await prisma.transaction.findFirst({ where: { id, userId: user.id } });
   if (!existing) return notFound();
-  await prisma.transaction.delete({ where: { id } });
+  // refund balance
+  await prisma.$transaction(async (trx) => {
+    const acct = await trx.account.findUnique({ where: { id: existing.accountId } });
+    if (acct && acct.currency === existing.currency) {
+      const refund = existing.type === "income" ? -Number(existing.amount.toString()) : Number(existing.amount.toString());
+      await trx.account.update({
+        where: { id: acct.id },
+        data: { balance: { increment: new Prisma.Decimal(refund) } },
+      });
+    }
+    await trx.transaction.delete({ where: { id } });
+  });
   return NextResponse.json({ ok: true });
 }

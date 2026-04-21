@@ -1,20 +1,25 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { AppShell } from "@/components/AppShell";
 import { SessionProvider } from "@/components/SessionProvider";
-import { runDueRecurrings } from "@/lib/recurring";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  // opportunistic recurring runner — materialize any due recurrings
-  // the moment the user opens the app. Idempotent & bounded.
-  runDueRecurrings(session.user.id).catch(() => undefined);
+  const me = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { onboardingDone: true, name: true },
+  });
+
+  if (me && !me.onboardingDone) {
+    redirect("/onboarding");
+  }
 
   return (
     <SessionProvider>
-      <AppShell userName={session.user.name ?? session.user.email ?? "User"}>{children}</AppShell>
+      <AppShell userName={me?.name ?? session.user.name ?? "Bestie"}>{children}</AppShell>
     </SessionProvider>
   );
 }

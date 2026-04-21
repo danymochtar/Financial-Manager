@@ -37,10 +37,10 @@ export default function RegisterPage() {
         redirect: false,
       });
       if (signed?.error) {
-        setError("Akun ter-create tapi login gagal, coba login manual.");
+        setError("Akun jadi tapi login gagal, coba login manual.");
         return;
       }
-      router.push("/");
+      router.push("/onboarding");
       router.refresh();
     } catch (err) {
       setError((err as Error).message);
@@ -50,13 +50,14 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="card p-6">
+    <div className="card p-5">
       <form className="space-y-3" onSubmit={onSubmit}>
         <div>
-          <label className="label">Nama</label>
+          <label className="label">Panggilan</label>
           <input
             required
             className="input mt-1"
+            placeholder="Namamu (yg lo mau dipanggil)"
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           />
@@ -81,10 +82,10 @@ export default function RegisterPage() {
             value={form.password}
             onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
           />
-          <p className="mt-1 text-xs text-slate-500">Minimal 6 karakter.</p>
+          <p className="mt-1 text-[11px] text-slate-500">Minimal 6 karakter.</p>
         </div>
         <div>
-          <label className="label">Primary currency (buat dashboard default)</label>
+          <label className="label">Currency default</label>
           <select
             className="input mt-1"
             value={form.primaryCurrency}
@@ -101,15 +102,15 @@ export default function RegisterPage() {
             <option value="SGD">SGD</option>
           </select>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-rose-600">{error}</p>}
         <button type="submit" className="btn-primary w-full" disabled={busy}>
-          {busy ? "Loading..." : "Bikin akun"}
+          {busy ? "Loading..." : "Bikin Akun"}
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-slate-600">
         Udah punya akun?{" "}
-        <Link href="/login" className="font-medium text-brand-700 hover:underline">
-          Login
+        <Link href="/login" className="font-semibold text-pink-700">
+          Masuk
         </Link>
       </p>
     </div>

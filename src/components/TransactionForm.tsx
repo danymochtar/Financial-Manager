@@ -4,62 +4,58 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
 
-type Option = { id: string; name: string; kind?: string };
+type Option = { id: string; name: string; kind?: string; emoji?: string; currency?: string };
 
 export type TransactionFormValues = {
   type: "income" | "expense";
-  sourceId: string;
+  accountId: string;
   categoryId: string;
   amount: number;
   currency: "IDR" | "MYR" | "USD" | "SGD";
   date: string;
   merchant: string | null;
   note: string | null;
-  receiptId?: string | null;
+  isBoros: boolean;
 };
 
 export function TransactionForm({
   initial,
-  receiptId,
   submitLabel = "Simpan",
-  onSuccess,
   txId,
+  onSuccess,
 }: {
   initial?: Partial<TransactionFormValues>;
-  receiptId?: string | null;
   submitLabel?: string;
-  onSuccess?: () => void;
   txId?: string;
+  onSuccess?: () => void;
 }) {
   const router = useRouter();
   const toast = useToast();
-  const [sources, setSources] = useState<Option[]>([]);
+  const [accounts, setAccounts] = useState<Option[]>([]);
   const [categories, setCategories] = useState<Option[]>([]);
   const [values, setValues] = useState<TransactionFormValues>({
     type: initial?.type ?? "expense",
-    sourceId: initial?.sourceId ?? "",
+    accountId: initial?.accountId ?? "",
     categoryId: initial?.categoryId ?? "",
     amount: initial?.amount ?? 0,
     currency: (initial?.currency as TransactionFormValues["currency"]) ?? "IDR",
     date: initial?.date ?? new Date().toISOString().slice(0, 10),
     merchant: initial?.merchant ?? "",
     note: initial?.note ?? "",
-    receiptId: receiptId ?? initial?.receiptId ?? null,
+    isBoros: initial?.isBoros ?? false,
   });
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    Promise.all([fetch("/api/sources").then((r) => r.json()), fetch("/api/categories").then((r) => r.json())]).then(
-      ([s, c]) => {
-        setSources(s.sources ?? []);
+    Promise.all([fetch("/api/accounts").then((r) => r.json()), fetch("/api/categories").then((r) => r.json())]).then(
+      ([a, c]) => {
+        setAccounts(a.accounts ?? []);
         setCategories(c.categories ?? []);
         setValues((v) => ({
           ...v,
-          sourceId: v.sourceId || (s.sources?.[0]?.id ?? ""),
+          accountId: v.accountId || (a.accounts?.[0]?.id ?? ""),
           categoryId:
-            v.categoryId ||
-            ((c.categories ?? []) as Option[]).find((cc) => cc.kind === v.type)?.id ||
-            "",
+            v.categoryId || ((c.categories ?? []) as Option[]).find((cc) => cc.kind === v.type)?.id || "",
         }));
       }
     );
@@ -72,12 +68,8 @@ export function TransactionForm({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!values.sourceId || !values.categoryId) {
-      toast({ kind: "error", message: "Source & kategori wajib dipilih" });
-      return;
-    }
-    if (!values.amount || values.amount <= 0) {
-      toast({ kind: "error", message: "Amount harus > 0" });
+    if (!values.accountId || !values.categoryId || !values.amount) {
+      toast({ kind: "error", message: "Lengkapi akun, kategori, amount" });
       return;
     }
     setBusy(true);
@@ -96,13 +88,13 @@ export function TransactionForm({
       });
       const data = await res.json();
       if (!res.ok) {
-        toast({ kind: "error", message: data?.error?.formErrors?.[0] ?? data?.error ?? "Gagal simpan" });
+        toast({ kind: "error", message: data?.error ?? "Gagal simpan" });
         return;
       }
-      toast({ kind: "success", message: "Transaksi tersimpan" });
+      toast({ kind: "success", message: "Tercatat 🫠" });
       if (onSuccess) onSuccess();
       else {
-        router.push("/transactions");
+        router.push("/tx");
         router.refresh();
       }
     } finally {
@@ -118,12 +110,12 @@ export function TransactionForm({
             key={t}
             type="button"
             onClick={() => setValues((v) => ({ ...v, type: t, categoryId: "" }))}
-            className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+            className={`flex-1 rounded-full border px-3 py-2 text-sm font-medium ${
               values.type === t
                 ? t === "expense"
                   ? "border-rose-300 bg-rose-50 text-rose-700"
                   : "border-emerald-300 bg-emerald-50 text-emerald-700"
-                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                : "border-pink-100 bg-white text-slate-600"
             }`}
           >
             {t === "expense" ? "Pengeluaran" : "Pemasukan"}
@@ -165,7 +157,6 @@ export function TransactionForm({
         <label className="label">Tanggal</label>
         <input
           type="date"
-          required
           className="input mt-1"
           value={values.date.slice(0, 10)}
           onChange={(e) => setValues((v) => ({ ...v, date: e.target.value }))}
@@ -174,17 +165,17 @@ export function TransactionForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="label">Source</label>
+          <label className="label">Akun</label>
           <select
             required
             className="input mt-1"
-            value={values.sourceId}
-            onChange={(e) => setValues((v) => ({ ...v, sourceId: e.target.value }))}
+            value={values.accountId}
+            onChange={(e) => setValues((v) => ({ ...v, accountId: e.target.value }))}
           >
             <option value="">— pilih —</option>
-            {sources.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.emoji ?? ""} {a.name} {a.currency ? `(${a.currency})` : ""}
               </option>
             ))}
           </select>
@@ -200,7 +191,7 @@ export function TransactionForm({
             <option value="">— pilih —</option>
             {filteredCategories.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {c.emoji ?? ""} {c.name}
               </option>
             ))}
           </select>
@@ -213,21 +204,32 @@ export function TransactionForm({
           className="input mt-1"
           value={values.merchant ?? ""}
           onChange={(e) => setValues((v) => ({ ...v, merchant: e.target.value }))}
-          placeholder="Grab, Starbucks, 7-Eleven, dst."
+          placeholder="Grab, Starbucks, Indomaret..."
         />
       </div>
 
       <div>
-        <label className="label">Note (opsional)</label>
+        <label className="label">Catatan</label>
         <textarea
-          className="input mt-1 min-h-[80px]"
+          className="input mt-1 min-h-[64px]"
           value={values.note ?? ""}
           onChange={(e) => setValues((v) => ({ ...v, note: e.target.value }))}
         />
       </div>
 
+      {values.type === "expense" && (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={values.isBoros}
+            onChange={(e) => setValues((v) => ({ ...v, isBoros: e.target.checked }))}
+          />
+          <span>🫠 Tandain ini transaksi kalap</span>
+        </label>
+      )}
+
       <button type="submit" className="btn-primary w-full" disabled={busy}>
-        {busy ? "Menyimpan..." : submitLabel}
+        {busy ? "Nyimpen..." : submitLabel}
       </button>
     </form>
   );

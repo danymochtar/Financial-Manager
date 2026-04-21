@@ -1,5 +1,6 @@
-// Financial Manager data model — PostgreSQL (Neon on Vercel).
-// Decimal maps to Postgres NUMERIC natively.
+// "Seberapa Boros Lo?" — data model (PostgreSQL)
+// Dual-base currency (IDR + MYR) tetap: Transaction nyimpen snapshot
+// amountIDR & amountMYR, Account punya currency sendiri.
 
 generator client {
   provider = "prisma-client-js"
@@ -12,33 +13,46 @@ datasource db {
 }
 
 model User {
-  id              String        @id @default(cuid())
-  email           String        @unique
+  id              String   @id @default(cuid())
+  email           String   @unique
   passwordHash    String
   name            String
-  primaryCurrency String        @default("IDR")
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  primaryCurrency String   @default("IDR")
+  onboardingDone  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  sources      Source[]
-  categories   Category[]
-  transactions Transaction[]
-  receipts     Receipt[]
-  budgets      Budget[]
-  recurring    Recurring[]
+  accounts       Account[]
+  categories     Category[]
+  transactions   Transaction[]
+  receipts       Receipt[]
+  balanceUploads BalanceUpload[]
+  budgets        Budget[]
+  debts          Debt[]
+  dependents     Dependent[]
+  fixedIncomes   FixedIncome[]
+  fixedExpenses  FixedExpense[]
 }
 
-model Source {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  country   String
-  color     String   @default("#3b82f6")
-  createdAt DateTime @default(now())
+// Rekening, e-money, cash, kartu kredit.
+model Account {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  type        String // "bank" | "ewallet" | "cash" | "credit_card"
+  currency    String
+  balance     Decimal  @default(0)
+  creditLimit Decimal? // cuma buat credit_card
+  color       String   @default("#ec4899")
+  emoji       String   @default("💳")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
-  recurring    Recurring[]
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+  fixedIncomes  FixedIncome[]
+  fixedExpenses FixedExpense[]
+  debts         Debt[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -48,15 +62,16 @@ model Category {
   id        String   @id @default(cuid())
   userId    String
   name      String
-  kind      String
-  icon      String   @default("tag")
-  color     String   @default("#64748b")
+  kind      String // "income" | "expense"
+  nature    String   @default("variable") // "fixed" | "variable"
+  emoji     String   @default("🏷️")
+  color     String   @default("#ec4899")
   createdAt DateTime @default(now())
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
-  budgets      Budget[]
-  recurring    Recurring[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+  budgets       Budget[]
+  fixedExpenses FixedExpense[]
 
   @@unique([userId, name, kind])
   @@index([userId])
@@ -65,9 +80,9 @@ model Category {
 model Transaction {
   id         String   @id @default(cuid())
   userId     String
-  sourceId   String
+  accountId  String
   categoryId String
-  type       String
+  type       String // "income" | "expense" | "transfer"
   amount     Decimal
   currency   String
   amountIDR  Decimal
@@ -75,17 +90,18 @@ model Transaction {
   date       DateTime
   merchant   String?
   note       String?
+  isBoros    Boolean  @default(false) // user-tagged "ini kalap"
   receiptId  String?  @unique
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  source   Source   @relation(fields: [sourceId], references: [id])
+  account  Account  @relation(fields: [accountId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
   receipt  Receipt? @relation(fields: [receiptId], references: [id])
 
   @@index([userId, date])
-  @@index([sourceId])
+  @@index([accountId])
   @@index([categoryId])
 }
 
@@ -99,7 +115,8 @@ model Receipt {
   totalAmount Decimal?
   currency    String?
   date        DateTime?
-  status      String    @default("draft")
+  status      String    @default("draft") // "draft" | "confirmed" | "discarded"
+  batchId     String? // kalau di-capture batch, group-nya
   createdAt   DateTime  @default(now())
 
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -107,6 +124,7 @@ model Receipt {
   items       ReceiptItem[]
 
   @@index([userId, status])
+  @@index([batchId])
 }
 
 model ReceiptItem {
@@ -123,45 +141,118 @@ model ReceiptItem {
   @@index([receiptId])
 }
 
+// Screenshot banking app → OCR → update Account.balance
+model BalanceUpload {
+  id                   String   @id @default(cuid())
+  userId               String
+  accountId            String?
+  imagePath            String
+  mimeType             String
+  rawOcrJson           String?
+  extractedBalance     Decimal?
+  extractedAccountName String?
+  currency             String?
+  status               String   @default("draft") // "draft" | "applied" | "discarded"
+  createdAt            DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
 model Budget {
   id         String   @id @default(cuid())
   userId     String
-  categoryId String
+  scope      String // "overall" | "category"
+  categoryId String?
+  period     String // "daily" | "weekly" | "monthly"
   amount     Decimal
   currency   String
-  period     String   @default("monthly")
   startDate  DateTime
   createdAt  DateTime @default(now())
 
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category Category @relation(fields: [categoryId], references: [id])
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id])
 
-  @@unique([userId, categoryId, period, currency])
+  @@unique([userId, scope, categoryId, period, currency])
   @@index([userId])
 }
 
-model Recurring {
-  id          String   @id @default(cuid())
-  userId      String
-  sourceId    String
-  categoryId  String
-  type        String
-  amount      Decimal
-  currency    String
-  cadence     String
-  dayOfMonth  Int?
-  weekday     Int?
-  nextDueDate DateTime
-  isActive    Boolean  @default(true)
-  note        String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model FixedIncome {
+  id         String   @id @default(cuid())
+  userId     String
+  accountId  String? // rekening yang nerima
+  name       String // "Gaji Kerjaan Malaysia"
+  amount     Decimal
+  currency   String
+  cadence    String   @default("monthly") // "monthly" | "weekly"
+  dayOfMonth Int?
+  nextDue    DateTime
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account? @relation(fields: [accountId], references: [id])
+
+  @@index([userId, isActive])
+}
+
+model FixedExpense {
+  id         String   @id @default(cuid())
+  userId     String
+  categoryId String
+  accountId  String? // rekening yang mbayar
+  name       String // "Sewa Kost", "Netflix"
+  amount     Decimal
+  currency   String
+  cadence    String   @default("monthly")
+  dayOfMonth Int?
+  nextDue    DateTime
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  source   Source   @relation(fields: [sourceId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
+  account  Account? @relation(fields: [accountId], references: [id])
 
-  @@index([userId, isActive, nextDueDate])
+  @@index([userId, isActive])
+}
+
+model Debt {
+  id              String    @id @default(cuid())
+  userId          String
+  accountId       String? // source bayar
+  name            String // "KPR BCA", "Cicilan Motor"
+  totalPrincipal  Decimal
+  remainingAmount Decimal
+  monthlyPayment  Decimal
+  currency        String
+  interestRate    Decimal?
+  endDate         DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account? @relation(fields: [accountId], references: [id])
+
+  @@index([userId])
+}
+
+model Dependent {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String // "Mama", "Ade Bungsu"
+  relationship  String // "parent" | "sibling" | "child" | "partner" | "other"
+  monthlyAmount Decimal
+  currency      String
+  note          String?
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model FxRate {
