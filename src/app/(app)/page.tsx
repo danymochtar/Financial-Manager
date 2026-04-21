@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Flame, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { Flame, Sparkles, Target, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { BorosMeter } from "@/components/BorosMeter";
 import { formatMoney, formatShort } from "@/lib/currency";
 
@@ -88,6 +88,26 @@ export default function DashboardPage() {
         <MiniBar label="Minggu ini" spent={weekSpent} limit={weeklyLimit} currency={curr} />
         <MiniBar label="Bulan ini" spent={monthSpent} limit={monthlyLimit} currency={curr} />
       </div>
+
+      {/* Dukun CTA */}
+      <Link
+        href="/dukun"
+        className="card relative overflow-hidden bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-4 text-white active:scale-[0.99]"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur">
+            <Sparkles className="h-6 w-6" />
+          </div>
+          <div className="flex-1">
+            <div className="text-xs uppercase tracking-wider opacity-90">Tanya Dukun Duit</div>
+            <div className="text-base font-bold leading-tight">
+              &quot;Realistis gak nabung {summary ? "Brio 2 tahun?" : "goal gw?"}&quot;
+            </div>
+            <div className="text-xs opacity-90">AI advisor baca semua data lo · 1 tap</div>
+          </div>
+          <Target className="h-5 w-5" />
+        </div>
+      </Link>
 
       {/* Streak */}
       {summary && summary.streak.currentStreak > 0 && (

@@ -3,17 +3,10 @@
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Camera, Home, Wallet } from "lucide-react";
+import { BarChart3, Camera, Home, Sparkles, Wallet } from "lucide-react";
 import { ToastProvider } from "@/components/Toast";
 import { cn } from "@/lib/utils";
 
-const TABS = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/akun", label: "Akun", icon: Wallet },
-  // center: floating Catat button (special)
-  { href: "/analytics", label: "Stats", icon: BarChart3 },
-  { href: "/setting", label: "Setting", icon: null, isSetting: true },
-] as const;
 
 export function AppShell({ userName, children }: { userName: string; children: React.ReactNode }) {
   const pathname = usePathname();
@@ -32,13 +25,21 @@ export function AppShell({ userName, children }: { userName: string; children: R
                 </div>
                 <div className="text-xs text-slate-500">Halo {userName.split(" ")[0]} 👋</div>
               </div>
-              <button
-                type="button"
-                onClick={() => signOut({ callbackUrl: "/login" })}
-                className="text-[11px] text-slate-500 hover:text-slate-700"
-              >
-                Keluar
-              </button>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/setting"
+                  className="text-[11px] text-slate-500 hover:text-slate-700"
+                >
+                  Setting
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="text-[11px] text-slate-500 hover:text-slate-700"
+                >
+                  Keluar
+                </button>
+              </div>
             </div>
           </header>
         )}
@@ -78,8 +79,8 @@ function BottomNav({ pathname }: { pathname: string }) {
             <Camera className="h-7 w-7" />
           </Link>
         </div>
+        <NavItem href="/dukun" label="Dukun" icon={Sparkles} active={active("/dukun")} />
         <NavItem href="/analytics" label="Stats" icon={BarChart3} active={active("/analytics")} />
-        <NavItem href="/setting" label="Profil" icon={SettingIcon} active={active("/setting")} />
       </div>
     </nav>
   );
@@ -110,11 +111,3 @@ function NavItem({
   );
 }
 
-function SettingIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="8" r="3.5" />
-      <path d="M4 20c1-3.5 4-5 8-5s7 1.5 8 5" strokeLinecap="round" />
-    </svg>
-  );
-}
