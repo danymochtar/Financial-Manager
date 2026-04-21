@@ -16,6 +16,7 @@ const schema = z.object({
       })
     )
     .default([]),
+  locale: z.enum(["id", "en"]).default("id"),
 });
 
 export async function POST(req: Request) {
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
   try {
     const data = schema.parse(await req.json());
     const snapshot = await buildSnapshot(user.id);
-    const answer = await askDukun(snapshot, data.question, data.history);
+    const answer = await askDukun(snapshot, data.question, data.history, data.locale);
     return NextResponse.json({ answer, snapshot });
   } catch (err) {
     if (err instanceof z.ZodError) return badRequest(err);

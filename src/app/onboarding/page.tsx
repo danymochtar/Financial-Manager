@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowLeft, Plus, X, Check } from "lucide-react";
 import { useToast } from "@/components/Toast";
+import { useT } from "@/lib/i18n";
 import { ACCOUNT_TEMPLATES, DEPENDENT_RELATIONSHIPS } from "@/lib/categories";
 
 type AccountDraft = {
@@ -29,20 +30,21 @@ type BudgetDraft = {
 };
 
 const STEPS = [
-  { key: "welcome", title: "Halo", emoji: "👋" },
-  { key: "accounts", title: "Rekening Lo", emoji: "🏦" },
-  { key: "credit_cards", title: "Kartu Kredit", emoji: "💳" },
-  { key: "income", title: "Penghasilan", emoji: "💰" },
-  { key: "fixed_expense", title: "Pengeluaran Fix", emoji: "🏠" },
-  { key: "debts", title: "Cicilan", emoji: "⛓️" },
-  { key: "dependents", title: "Tanggungan", emoji: "👪" },
-  { key: "budget", title: "Target Boros", emoji: "🎯" },
-  { key: "done", title: "Siap!", emoji: "🎉" },
+  { key: "welcome", titleKey: "onb.welcomeTitle", emoji: "👋" },
+  { key: "accounts", titleKey: "onb.stepAccounts", emoji: "🏦" },
+  { key: "credit_cards", titleKey: "onb.stepCC", emoji: "💳" },
+  { key: "income", titleKey: "onb.stepIncome", emoji: "💰" },
+  { key: "fixed_expense", titleKey: "onb.stepFixedExpense", emoji: "🏠" },
+  { key: "debts", titleKey: "onb.stepDebts", emoji: "⛓️" },
+  { key: "dependents", titleKey: "onb.stepDependents", emoji: "👪" },
+  { key: "budget", titleKey: "onb.stepBudget", emoji: "🎯" },
+  { key: "done", titleKey: "onb.stepDone", emoji: "🎉" },
 ] as const;
 
 const FIXED_EXPENSE_CATS = ["Sewa / Kost", "Utilitas", "Internet & Pulsa", "Langganan Digital", "Asuransi", "Tanggungan Keluarga"];
 
 export default function OnboardingPage() {
+  const { t } = useT();
   const router = useRouter();
   const toast = useToast();
   const [step, setStep] = useState(0);
@@ -204,24 +206,21 @@ export default function OnboardingPage() {
 
       <div className="flex-1 overflow-y-auto px-5 py-6">
         <div className="mb-4 text-6xl">{current.emoji}</div>
-        <h1 className="text-2xl font-bold tracking-tight">{current.title}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t(current.titleKey)}</h1>
 
         {current.key === "welcome" && (
           <div className="mt-3 space-y-4 text-slate-700">
-            <p>
-              Gw bakal bantuin lo sadar seberapa boros kebiasaan lo, biar pelan-pelan bisa lebih hemat
-              dan nabung. Singkat aja — skip step yang ga relevan buat lo.
-            </p>
+            <p>{t("onb.welcomeBody")}</p>
             <ul className="space-y-2 text-sm">
-              <li>🏦 Input saldo rekening & e-wallet</li>
-              <li>💳 Kartu kredit (limit + tagihan)</li>
-              <li>💰 Penghasilan fix</li>
-              <li>🏠 Pengeluaran fix bulanan</li>
-              <li>⛓️ Cicilan / hutang</li>
-              <li>👪 Tanggungan (kalau generasi sandwich)</li>
-              <li>🎯 Set target budget harian/mingguan/bulanan</li>
+              <li>{t("onb.welcomeAccounts")}</li>
+              <li>{t("onb.welcomeCC")}</li>
+              <li>{t("onb.welcomeIncome")}</li>
+              <li>{t("onb.welcomeFixedExpense")}</li>
+              <li>{t("onb.welcomeDebts")}</li>
+              <li>{t("onb.welcomeDependents")}</li>
+              <li>{t("onb.welcomeBudget")}</li>
             </ul>
-            <p className="text-sm text-slate-500">Bisa di-update kapan aja nanti di setting.</p>
+            <p className="text-sm text-slate-500">{t("onb.welcomeNote")}</p>
           </div>
         )}
 
@@ -277,7 +276,7 @@ export default function OnboardingPage() {
       <div className="sticky bottom-0 flex items-center gap-2 border-t border-pink-100 bg-white/95 px-5 py-4 backdrop-blur safe-b">
         {step > 0 && !isLast && (
           <button className="btn-ghost" onClick={back} disabled={busy}>
-            <ArrowLeft className="h-4 w-4" /> Balik
+            <ArrowLeft className="h-4 w-4" /> {t("back")}
           </button>
         )}
         <div className="flex-1" />
@@ -287,11 +286,11 @@ export default function OnboardingPage() {
             onClick={next}
             disabled={busy || (current.key === "accounts" && accounts.length === 0)}
           >
-            {step === 0 ? "Gas" : "Lanjut"} <ArrowRight className="h-4 w-4" />
+            {step === 0 ? t("onb.gas") : t("next")} <ArrowRight className="h-4 w-4" />
           </button>
         ) : (
           <button className="btn-primary" onClick={submitAll} disabled={busy}>
-            {busy ? "Menyimpan..." : "Mulai Catat 🚀"}
+            {busy ? t("saving") : t("onb.start")}
           </button>
         )}
       </div>

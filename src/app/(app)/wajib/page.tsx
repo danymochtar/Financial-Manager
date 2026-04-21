@@ -5,6 +5,7 @@ import { Trash2, Plus, X } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { formatShort } from "@/lib/currency";
 import { MoneyInput, CurrencySelect } from "@/components/MoneyInput";
+import { useT } from "@/lib/i18n";
 import {
   DEPENDENT_RELATIONSHIPS,
   DEBT_TEMPLATES,
@@ -71,6 +72,7 @@ type Category = { id: string; name: string; kind: string; emoji: string; nature:
 type Tab = "expense" | "income" | "debt" | "dependent" | "investment" | "goal";
 
 export default function WajibPage() {
+  const { t } = useT();
   const toast = useToast();
   const [tab, setTab] = useState<Tab>("expense");
   const [incomes, setIncomes] = useState<FixedIncome[]>([]);
@@ -120,21 +122,19 @@ export default function WajibPage() {
   }
 
   const TABS: Array<{ k: Tab; l: string }> = [
-    { k: "expense", l: "Expense Fix" },
-    { k: "income", l: "Income" },
-    { k: "debt", l: "Cicilan" },
-    { k: "dependent", l: "Tanggungan" },
-    { k: "investment", l: "Investasi" },
-    { k: "goal", l: "Target 🎯" },
+    { k: "expense", l: t("wajib.tab.expense") },
+    { k: "income", l: t("wajib.tab.income") },
+    { k: "debt", l: t("wajib.tab.debt") },
+    { k: "dependent", l: t("wajib.tab.dependent") },
+    { k: "investment", l: t("wajib.tab.investment") },
+    { k: "goal", l: t("wajib.tab.goal") },
   ];
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Wajib Bulanan</h1>
-        <p className="text-sm text-slate-600">
-          Income, fix expense, cicilan, tanggungan, investasi, & target goals.
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("wajib.title")}</h1>
+        <p className="text-sm text-slate-600">{t("wajib.desc")}</p>
       </div>
 
       <div className="flex gap-1 overflow-x-auto rounded-full bg-white p-1 border border-pink-100 text-xs">
@@ -152,7 +152,7 @@ export default function WajibPage() {
       </div>
 
       <button className="btn-primary w-full" onClick={() => setShowAdd(true)}>
-        <Plus className="h-4 w-4" /> Tambah {TABS.find((t) => t.k === tab)?.l}
+        <Plus className="h-4 w-4" /> {t("wajib.addBtn")} {TABS.find((x) => x.k === tab)?.l}
       </button>
 
       {tab === "expense" && (

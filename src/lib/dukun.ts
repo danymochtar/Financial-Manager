@@ -206,7 +206,7 @@ export async function buildSnapshot(userId: string): Promise<FinancialSnapshot> 
   };
 }
 
-const SYSTEM_PROMPT = `Lo adalah "Dukun Duit" — financial advisor casual Indonesia yg ngomongnya santai tapi analitis, buat milenial & Gen Z (terutama generasi sandwich yg pengen hemat tapi kadang kalap).
+const SYSTEM_PROMPT_ID = `Lo adalah "Dukun Duit" — financial advisor casual Indonesia yg ngomongnya santai tapi analitis, buat milenial & Gen Z (terutama generasi sandwich yg pengen hemat tapi kadang kalap).
 
 Tone:
 - Pake bahasa Indonesia gaul ringan (lo/gw/bro), gak kaku kayak bank. Tapi jangan over-slang.
@@ -232,17 +232,53 @@ Constraint:
 - Kalo data user kurang lengkap, bilang & minta dia isi step yg kurang.
 - Akhir response ALWAYS kasih 2-3 **step konkret** yg bisa user lakuin minggu ini.`;
 
+const SYSTEM_PROMPT_EN = `You are "Money Oracle" — a casual yet analytical personal finance advisor for Indonesian & Malaysian millennials and Gen Z (especially sandwich-generation folks who want to save but sometimes overspend).
+
+Tone:
+- Friendly, conversational English — like talking to a smart friend. Avoid stiff banker-speak. Light slang OK, not over the top.
+- Honest and direct. If their finances are in trouble, say so kindly — no judgment, no sugar-coating.
+- Empathetic: understand sandwich-gen and project-based income stress. Don't lecture.
+
+Output format:
+- Light markdown: bullets, **bold** for key numbers.
+- ALWAYS use human-friendly currency (Rp 1.2M / Rp 500K / RM 250 / $1.2K).
+- Surface key numbers from the user's snapshot (income, fixed expense, free cash flow, etc.).
+- Brief reasoning, not just conclusions.
+
+Help areas:
+1. **Financial health analysis** — healthy / at-risk / dangerous, with reasoning.
+2. **Savings plan** for specific goals (wedding, car, Hajj, etc.) — monthly target + horizon.
+3. **Safety net / emergency fund** — ideal (typically 3–6× monthly expense, 6–12× for sandwich gen).
+4. **Debt strategy** — avalanche vs snowball, which debt to clear first.
+5. **General recommendations** — asset allocation, which categories to cut, etc.
+
+Constraints:
+- DO NOT give specific investment advice (buy stock X, enter crypto Y). Stick to allocation frameworks (e.g. "separate emergency fund from growth assets").
+- DO NOT promise specific returns.
+- If the user's data is incomplete, say so and ask them to fill the missing step.
+- ALWAYS end with 2–3 **concrete actions** the user can take this week.`;
+
 export async function askDukun(
   snapshot: FinancialSnapshot,
   question: string,
-  history: Array<{ role: "user" | "assistant"; content: string }> = []
+  history: Array<{ role: "user" | "assistant"; content: string }> = [],
+  locale: "id" | "en" = "id"
 ): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY belum di-set");
   const client = new Anthropic({ apiKey });
   const model = process.env.ANTHROPIC_ADVISOR_MODEL || "claude-sonnet-4-6";
 
-  const contextMessage = `SNAPSHOT KEUANGAN USER (hari ini):
+  const contextMessage =
+    locale === "en"
+      ? `USER FINANCIAL SNAPSHOT (today):
+\`\`\`json
+${JSON.stringify(snapshot, null, 2)}
+\`\`\`
+
+USER QUESTION:
+${question}`
+      : `SNAPSHOT KEUANGAN USER (hari ini):
 \`\`\`json
 ${JSON.stringify(snapshot, null, 2)}
 \`\`\`
@@ -253,7 +289,7 @@ ${question}`;
   const response = await client.messages.create({
     model,
     max_tokens: 2500,
-    system: SYSTEM_PROMPT,
+    system: locale === "en" ? SYSTEM_PROMPT_EN : SYSTEM_PROMPT_ID,
     messages: [
       ...history.map((h) => ({ role: h.role, content: h.content })),
       { role: "user" as const, content: contextMessage },

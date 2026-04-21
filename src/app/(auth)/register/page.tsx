@@ -4,8 +4,10 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n";
 
 export default function RegisterPage() {
+  const { t } = useT();
   const router = useRouter();
   const [form, setForm] = useState({
     name: "",
@@ -28,7 +30,7 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data?.error?.formErrors?.[0] ?? data?.error ?? "Register gagal");
+        setError(data?.error?.formErrors?.[0] ?? data?.error ?? "Register failed");
         return;
       }
       const signed = await signIn("credentials", {
@@ -37,7 +39,7 @@ export default function RegisterPage() {
         redirect: false,
       });
       if (signed?.error) {
-        setError("Akun jadi tapi login gagal, coba login manual.");
+        setError("Account created but login failed — try manually.");
         return;
       }
       router.push("/onboarding");
@@ -53,17 +55,17 @@ export default function RegisterPage() {
     <div className="card p-5">
       <form className="space-y-3" onSubmit={onSubmit}>
         <div>
-          <label className="label">Panggilan</label>
+          <label className="label">{t("auth.name")}</label>
           <input
             required
             className="input mt-1"
-            placeholder="Namamu (yg lo mau dipanggil)"
+            placeholder={t("auth.namePlaceholder")}
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           />
         </div>
         <div>
-          <label className="label">Email</label>
+          <label className="label">{t("auth.email")}</label>
           <input
             type="email"
             required
@@ -73,7 +75,7 @@ export default function RegisterPage() {
           />
         </div>
         <div>
-          <label className="label">Password</label>
+          <label className="label">{t("auth.password")}</label>
           <input
             type="password"
             required
@@ -82,10 +84,10 @@ export default function RegisterPage() {
             value={form.password}
             onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
           />
-          <p className="mt-1 text-[11px] text-slate-500">Minimal 6 karakter.</p>
+          <p className="mt-1 text-[11px] text-slate-500">{t("auth.passwordMin")}</p>
         </div>
         <div>
-          <label className="label">Currency default</label>
+          <label className="label">{t("auth.currencyDefault")}</label>
           <select
             className="input mt-1"
             value={form.primaryCurrency}
@@ -104,13 +106,13 @@ export default function RegisterPage() {
         </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
         <button type="submit" className="btn-primary w-full" disabled={busy}>
-          {busy ? "Loading..." : "Bikin Akun"}
+          {busy ? "..." : t("auth.registerTitle")}
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-slate-600">
-        Udah punya akun?{" "}
+        {t("auth.hasAccount")}{" "}
         <Link href="/login" className="font-semibold text-pink-700">
-          Masuk
+          {t("auth.login")}
         </Link>
       </p>
     </div>

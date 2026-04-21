@@ -5,61 +5,97 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BarChart3, Camera, Home, Sparkles, Wallet } from "lucide-react";
 import { ToastProvider } from "@/components/Toast";
+import { LocaleProvider, useT, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-
 export function AppShell({ userName, children }: { userName: string; children: React.ReactNode }) {
+  return (
+    <LocaleProvider>
+      <ToastProvider>
+        <Shell userName={userName}>{children}</Shell>
+      </ToastProvider>
+    </LocaleProvider>
+  );
+}
+
+function Shell({ userName, children }: { userName: string; children: React.ReactNode }) {
   const pathname = usePathname();
+  const { t, locale, setLocale } = useT();
   const onboarding = pathname.startsWith("/onboarding");
 
   return (
-    <ToastProvider>
-      <div className="mx-auto flex min-h-[100dvh] max-w-app flex-col bg-gradient-to-b from-pink-50/50 to-orange-50/30">
-        {/* Top strip — only shows greeting, no nav. Mobile-first single column. */}
-        {!onboarding && (
-          <header className="px-4 pt-5 safe-t">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-pink-600">
-                  Seberapa Boros Lo?
-                </div>
-                <div className="text-xs text-slate-500">Halo {userName.split(" ")[0]} 👋</div>
+    <div className="mx-auto flex min-h-[100dvh] max-w-app flex-col bg-gradient-to-b from-pink-50/50 to-orange-50/30">
+      {!onboarding && (
+        <header className="px-4 pt-5 safe-t">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-pink-600">
+                {t("brand.name")}
               </div>
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/setting"
-                  className="text-[11px] text-slate-500 hover:text-slate-700"
-                >
-                  Setting
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => signOut({ callbackUrl: "/login" })}
-                  className="text-[11px] text-slate-500 hover:text-slate-700"
-                >
-                  Keluar
-                </button>
+              <div className="text-xs text-slate-500">
+                {t("hi")} {userName.split(" ")[0]} 👋
               </div>
             </div>
-          </header>
+            <div className="flex items-center gap-2">
+              <LocaleSwitch locale={locale} setLocale={setLocale} />
+              <Link href="/setting" className="text-[11px] text-slate-500 hover:text-slate-700">
+                {t("settings.link")}
+              </Link>
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="text-[11px] text-slate-500 hover:text-slate-700"
+              >
+                {t("logout")}
+              </button>
+            </div>
+          </div>
+        </header>
+      )}
+
+      {onboarding && (
+        <div className="flex justify-end px-4 pt-[max(1rem,var(--safe-top))]">
+          <LocaleSwitch locale={locale} setLocale={setLocale} />
+        </div>
+      )}
+
+      <main
+        className={cn(
+          "flex-1 px-4 pb-32 pt-4",
+          onboarding && "pb-8 pt-2"
         )}
+      >
+        {children}
+      </main>
 
-        <main
+      {!onboarding && <BottomNav pathname={pathname} />}
+    </div>
+  );
+}
+
+function LocaleSwitch({ locale, setLocale }: { locale: Locale; setLocale: (l: Locale) => void }) {
+  return (
+    <div className="inline-flex rounded-full bg-white p-0.5 border border-pink-100 text-[10px]">
+      {(["id", "en"] as Locale[]).map((l) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => setLocale(l)}
           className={cn(
-            "flex-1 px-4 pb-32 pt-4",
-            onboarding && "pb-8 pt-[max(1rem,var(--safe-top))]"
+            "px-2 py-0.5 rounded-full font-semibold uppercase",
+            locale === l ? "bg-pink-600 text-white" : "text-slate-500"
           )}
+          aria-pressed={locale === l}
         >
-          {children}
-        </main>
-
-        {!onboarding && <BottomNav pathname={pathname} />}
-      </div>
-    </ToastProvider>
+          {l}
+        </button>
+      ))}
+    </div>
   );
 }
 
 function BottomNav({ pathname }: { pathname: string }) {
+  const { t } = useT();
   const active = (href: string) => pathname === href || (href !== "/" && pathname.startsWith(href));
   return (
     <nav
@@ -67,20 +103,19 @@ function BottomNav({ pathname }: { pathname: string }) {
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px))" }}
     >
       <div className="relative grid grid-cols-5 h-16">
-        <NavItem href="/" label="Home" icon={Home} active={active("/")} />
-        <NavItem href="/akun" label="Akun" icon={Wallet} active={active("/akun")} />
-        {/* center floating Catat */}
+        <NavItem href="/" label={t("nav.home")} icon={Home} active={active("/")} />
+        <NavItem href="/akun" label={t("nav.akun")} icon={Wallet} active={active("/akun")} />
         <div className="relative flex items-center justify-center">
           <Link
             href="/catat"
             className="absolute -top-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white shadow-xl shadow-pink-500/40 active:scale-95"
-            aria-label="Catat keborosan"
+            aria-label={t("nav.catat")}
           >
             <Camera className="h-7 w-7" />
           </Link>
         </div>
-        <NavItem href="/dukun" label="Dukun" icon={Sparkles} active={active("/dukun")} />
-        <NavItem href="/analytics" label="Stats" icon={BarChart3} active={active("/analytics")} />
+        <NavItem href="/dukun" label={t("nav.dukun")} icon={Sparkles} active={active("/dukun")} />
+        <NavItem href="/analytics" label={t("nav.stats")} icon={BarChart3} active={active("/analytics")} />
       </div>
     </nav>
   );
@@ -110,4 +145,3 @@ function NavItem({
     </Link>
   );
 }
-

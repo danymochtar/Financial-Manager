@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Flame, Sparkles, Target, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { BorosMeter } from "@/components/BorosMeter";
 import { formatMoney, formatShort } from "@/lib/currency";
+import { useT } from "@/lib/i18n";
 
 type Summary = {
   boros: { today: { IDR: number; MYR: number }; week: { IDR: number; MYR: number }; month: { IDR: number; MYR: number } };
@@ -18,6 +19,7 @@ type Summary = {
 type Currency = "IDR" | "MYR";
 
 export default function DashboardPage() {
+  const { t, locale } = useT();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [curr, setCurr] = useState<Currency>("IDR");
   const [recent, setRecent] = useState<
@@ -64,7 +66,14 @@ export default function DashboardPage() {
     <div className="space-y-5">
       {/* Currency toggle */}
       <div className="flex justify-between items-center">
-        <div className="text-sm text-slate-600">Hari ini: {new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}</div>
+        <div className="text-sm text-slate-600">
+          {t("dash.today")}:{" "}
+          {new Date().toLocaleDateString(locale === "en" ? "en-US" : "id-ID", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          })}
+        </div>
         <div className="inline-flex rounded-full bg-white p-0.5 border border-pink-100 text-xs">
           {(["IDR", "MYR"] as Currency[]).map((c) => (
             <button
@@ -81,12 +90,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Boros Meter hero */}
-      <BorosMeter spent={todaySpent} limit={dailyLimit} currency={curr} label="Hari Ini" />
+      <BorosMeter spent={todaySpent} limit={dailyLimit} currency={curr} label={t("dash.boros.today")} />
 
       {/* Week / Month progress bars */}
       <div className="grid grid-cols-2 gap-3">
-        <MiniBar label="Minggu ini" spent={weekSpent} limit={weeklyLimit} currency={curr} />
-        <MiniBar label="Bulan ini" spent={monthSpent} limit={monthlyLimit} currency={curr} />
+        <MiniBar label={t("dash.boros.week")} spent={weekSpent} limit={weeklyLimit} currency={curr} />
+        <MiniBar label={t("dash.boros.month")} spent={monthSpent} limit={monthlyLimit} currency={curr} />
       </div>
 
       {/* Dukun CTA */}
@@ -99,11 +108,9 @@ export default function DashboardPage() {
             <Sparkles className="h-6 w-6" />
           </div>
           <div className="flex-1">
-            <div className="text-xs uppercase tracking-wider opacity-90">Tanya Dukun Duit</div>
-            <div className="text-base font-bold leading-tight">
-              &quot;Realistis gak nabung {summary ? "Brio 2 tahun?" : "goal gw?"}&quot;
-            </div>
-            <div className="text-xs opacity-90">AI advisor baca semua data lo · 1 tap</div>
+            <div className="text-xs uppercase tracking-wider opacity-90">{t("dash.dukunCta.title")}</div>
+            <div className="text-base font-bold leading-tight">{t("dash.dukunCta.question")}</div>
+            <div className="text-xs opacity-90">{t("dash.dukunCta.sub")}</div>
           </div>
           <Target className="h-5 w-5" />
         </div>
@@ -115,10 +122,10 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
             <Flame className="h-8 w-8" />
             <div>
-              <div className="text-xs uppercase tracking-wider opacity-90">Hemat Streak</div>
-              <div className="text-2xl font-bold">{summary.streak.currentStreak} hari 🔥</div>
+              <div className="text-xs uppercase tracking-wider opacity-90">{t("dash.streak")}</div>
+              <div className="text-2xl font-bold">{summary.streak.currentStreak} {t("dash.streakDays")} 🔥</div>
               <div className="text-xs opacity-90">
-                Best: {summary.streak.bestStreak} hari
+                {t("dash.best")}: {summary.streak.bestStreak} {t("dash.streakDays")}
               </div>
             </div>
           </div>
@@ -128,8 +135,8 @@ export default function DashboardPage() {
       {/* Net worth */}
       <div className="card p-4">
         <div className="flex items-center justify-between">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Net Worth</div>
-          <Link href="/akun" className="text-xs text-pink-600">Lihat akun →</Link>
+          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">{t("dash.netWorth")}</div>
+          <Link href="/akun" className="text-xs text-pink-600">{t("dash.viewAccounts")}</Link>
         </div>
         <div className={`mt-1 text-2xl font-bold ${netWorth >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
           {formatMoney(netWorth, curr)}
@@ -137,13 +144,13 @@ export default function DashboardPage() {
         <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
           <div className="stat-tile">
             <div className="flex items-center gap-1 text-slate-500">
-              <TrendingUp className="h-3 w-3 text-emerald-500" /> Aset
+              <TrendingUp className="h-3 w-3 text-emerald-500" /> {t("dash.asset")}
             </div>
             <div className="mt-1 font-semibold">{formatShort(assetSum, curr)}</div>
           </div>
           <div className="stat-tile">
             <div className="flex items-center gap-1 text-slate-500">
-              <TrendingDown className="h-3 w-3 text-rose-500" /> Hutang
+              <TrendingDown className="h-3 w-3 text-rose-500" /> {t("dash.debt")}
             </div>
             <div className="mt-1 font-semibold">{formatShort(debtSum, curr)}</div>
           </div>
@@ -154,18 +161,18 @@ export default function DashboardPage() {
       {summary && (summary.fixedLoad.expenseIDR + summary.fixedLoad.expenseMYR > 0) && (
         <div className="card p-4">
           <div className="flex items-center justify-between">
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Beban Fix Bulanan</div>
-            <Link href="/wajib" className="text-xs text-pink-600">Atur →</Link>
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">{t("dash.fixedLoad")}</div>
+            <Link href="/wajib" className="text-xs text-pink-600">{t("dash.adjust")}</Link>
           </div>
           <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
             <div>
-              <div className="text-slate-500 text-xs">Income fix</div>
+              <div className="text-slate-500 text-xs">{t("dash.fixedIncome")}</div>
               <div className="font-semibold text-emerald-600">
                 +{formatShort(curr === "IDR" ? summary.fixedLoad.incomeIDR : summary.fixedLoad.incomeMYR, curr)}
               </div>
             </div>
             <div>
-              <div className="text-slate-500 text-xs">Expense fix</div>
+              <div className="text-slate-500 text-xs">{t("dash.fixedExpense")}</div>
               <div className="font-semibold text-rose-600">
                 -{formatShort(curr === "IDR" ? summary.fixedLoad.expenseIDR : summary.fixedLoad.expenseMYR, curr)}
               </div>
@@ -177,34 +184,35 @@ export default function DashboardPage() {
       {/* Recent transactions */}
       <div className="card p-4">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Transaksi Terakhir</div>
-          <Link href="/tx" className="text-xs text-pink-600">Liat semua →</Link>
+          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">{t("dash.recentTx")}</div>
+          <Link href="/tx" className="text-xs text-pink-600">{t("dash.seeAll")}</Link>
         </div>
         {recent.length === 0 ? (
           <div className="py-6 text-center text-sm text-slate-500">
             <Wallet className="mx-auto mb-2 h-6 w-6 opacity-50" />
-            Belum ada transaksi. Tap tombol kamera di bawah 👇
+            {t("dash.emptyTx")}
           </div>
         ) : (
           <ul className="divide-y divide-pink-50">
-            {recent.map((t) => (
-              <li key={t.id} className="flex items-center gap-3 py-2.5">
-                <span className="text-xl">{t.category.emoji}</span>
+            {recent.map((tx) => (
+              <li key={tx.id} className="flex items-center gap-3 py-2.5">
+                <span className="text-xl">{tx.category.emoji}</span>
                 <div className="flex-1 min-w-0">
                   <div className="truncate text-sm font-medium">
-                    {t.merchant ?? t.category.name}
-                    {t.isBoros && <span className="ml-1 text-xs text-rose-500">🫠</span>}
+                    {tx.merchant ?? tx.category.name}
+                    {tx.isBoros && <span className="ml-1 text-xs text-rose-500">🫠</span>}
                   </div>
                   <div className="text-[11px] text-slate-500">
-                    {t.account.emoji} {t.account.name} · {new Date(t.date).toLocaleDateString("id-ID")}
+                    {tx.account.emoji} {tx.account.name} ·{" "}
+                    {new Date(tx.date).toLocaleDateString(locale === "en" ? "en-US" : "id-ID")}
                   </div>
                 </div>
                 <div
                   className={`text-sm font-semibold ${
-                    t.type === "income" ? "text-emerald-600" : "text-rose-600"
+                    tx.type === "income" ? "text-emerald-600" : "text-rose-600"
                   }`}
                 >
-                  {t.type === "income" ? "+" : "-"} {formatShort(Number(t.amount), t.currency)}
+                  {tx.type === "income" ? "+" : "-"} {formatShort(Number(tx.amount), tx.currency)}
                 </div>
               </li>
             ))}

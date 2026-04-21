@@ -1,6 +1,7 @@
 "use client";
 
 import { formatShort } from "@/lib/currency";
+import { useT } from "@/lib/i18n";
 
 export function BorosMeter({
   spent,
@@ -13,23 +14,22 @@ export function BorosMeter({
   currency: "IDR" | "MYR";
   label: string;
 }) {
+  const { t } = useT();
   const hasLimit = limit > 0;
   const pct = hasLimit ? Math.min(200, Math.round((spent / limit) * 100)) : 0;
   const arcPct = Math.min(100, pct);
-  const color =
-    pct >= 100 ? "#ef4444" : pct >= 80 ? "#f97316" : pct >= 50 ? "#eab308" : "#22c55e";
-  const tagline =
-    !hasLimit
-      ? "Set target dulu di /budget 👆"
-      : pct >= 120
-      ? "🔥 LO GILA BOROS BET"
-      : pct >= 100
-      ? "⚠️ Lewat budget, rem dong"
-      : pct >= 80
-      ? "Hati-hati, tinggal dikit"
-      : pct >= 50
-      ? "Santai, masih aman"
-      : "Mantap, hemat 🎉";
+  const color = pct >= 100 ? "#ef4444" : pct >= 80 ? "#f97316" : pct >= 50 ? "#eab308" : "#22c55e";
+  const tagline = !hasLimit
+    ? t("dash.borosNoLimit")
+    : pct >= 120
+    ? t("dash.borosCrazy")
+    : pct >= 100
+    ? t("dash.borosOver")
+    : pct >= 80
+    ? t("dash.borosAlmost")
+    : pct >= 50
+    ? t("dash.borosOk")
+    : t("dash.borosGood");
 
   const radius = 90;
   const circumference = 2 * Math.PI * radius;
@@ -67,14 +67,10 @@ export function BorosMeter({
         </div>
         <div className="flex-1">
           <div className="text-xs font-semibold uppercase tracking-wider text-pink-600">
-            Seberapa Boros Lo?
+            {t("dash.borosTitle")}
           </div>
           <div className="mt-1 text-lg font-bold leading-tight">{tagline}</div>
-          {hasLimit && (
-            <div className="mt-2 text-xs text-slate-500">
-              Variable expense {label.toLowerCase()} lo.
-            </div>
-          )}
+          {hasLimit && <div className="mt-2 text-xs text-slate-500">{t("dash.borosSubtitle")}</div>}
         </div>
       </div>
     </div>

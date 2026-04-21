@@ -4,8 +4,10 @@ import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useT } from "@/lib/i18n";
 
 function LoginForm() {
+  const { t } = useT();
   const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") ?? "/";
@@ -21,7 +23,7 @@ function LoginForm() {
     const res = await signIn("credentials", { email, password, redirect: false });
     setBusy(false);
     if (res?.error) {
-      setError("Email atau password-nya salah bestie.");
+      setError(t("auth.invalid"));
       return;
     }
     router.push(callbackUrl);
@@ -32,7 +34,7 @@ function LoginForm() {
     <div className="card p-5">
       <form className="space-y-3" onSubmit={onSubmit}>
         <div>
-          <label className="label">Email</label>
+          <label className="label">{t("auth.email")}</label>
           <input
             type="email"
             autoComplete="email"
@@ -43,7 +45,7 @@ function LoginForm() {
           />
         </div>
         <div>
-          <label className="label">Password</label>
+          <label className="label">{t("auth.password")}</label>
           <input
             type="password"
             autoComplete="current-password"
@@ -55,13 +57,13 @@ function LoginForm() {
         </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
         <button type="submit" className="btn-primary w-full" disabled={busy}>
-          {busy ? "Login..." : "Masuk"}
+          {busy ? t("auth.loggingIn") : t("auth.loginTitle")}
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-slate-600">
-        Belum punya akun?{" "}
+        {t("auth.noAccount")}{" "}
         <Link href="/register" className="font-semibold text-pink-700">
-          Bikin akun
+          {t("auth.register")}
         </Link>
       </p>
     </div>
