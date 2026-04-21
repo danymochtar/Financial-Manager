@@ -16,13 +16,14 @@ Personal finance tracker buat track **duit masuk & keluar lintas dua negara** �
 
 ## Tech Stack
 
-- Next.js 15 (App Router) + TypeScript
+- **Next.js 16** (App Router) + TypeScript + React 19
 - Tailwind CSS + Recharts + lucide-react
 - Prisma + **PostgreSQL (Neon)**
 - **Vercel Blob** untuk receipt image storage
 - NextAuth v5 (Credentials + bcryptjs)
 - `@anthropic-ai/sdk` (Claude Vision untuk OCR)
 - FX rates dari frankfurter.app (cache harian di tabel `FxRate`)
+- Package manager: **bun**
 
 ## Deploy ke Vercel (recommended)
 
@@ -55,13 +56,15 @@ Sekali doang, dari laptop:
 ```bash
 cp .env.example .env.local
 # isi DATABASE_URL + DIRECT_URL dari Neon (plus NEXTAUTH_SECRET dummy biar gak error)
-pnpm install
-pnpm prisma migrate deploy        # kalau migrations sudah ada
+bun install
+bun run prisma migrate deploy        # kalau migrations sudah ada
 # atau pertama kali:
-pnpm prisma migrate dev --name init
+bun run prisma migrate dev --name init
 ```
 
-Selanjutnya tiap push ke GitHub, Vercel auto-deploy. Kalau ada schema change, bikin migration baru lokal (`prisma migrate dev`), commit, push — Vercel build akan `prisma generate` otomatis, tapi `migrate deploy` harus dijalanin manual (atau taruh di build hook).
+> **Catatan Vercel install command**: Vercel detect package manager via `packageManager` field di `package.json` → pakai **bun** otomatis. Build command default (`bun run build`) udah run `prisma generate && next build`.
+
+Selanjutnya tiap push ke GitHub, Vercel auto-deploy. Kalau ada schema change, bikin migration baru lokal (`bun run prisma migrate dev`), commit, push — Vercel build akan `prisma generate` otomatis, tapi `migrate deploy` harus dijalanin manual (atau taruh di build hook).
 
 ### 4. Post-deploy sanity check
 
@@ -73,22 +76,31 @@ Selanjutnya tiap push ke GitHub, Vercel auto-deploy. Kalau ada schema change, bi
 ## Local development
 
 ```bash
-# 1. Install
-pnpm install
+# 1. Install (pastiin bun >= 1.3)
+bun install
 
 # 2. Env
 cp .env.example .env.local
 # isi dengan credentials lokal / Neon dev branch
 #  - DATABASE_URL + DIRECT_URL (Neon dev branch atau local postgres docker)
-#  - NEXTAUTH_SECRET (random 32-byte)
+#  - NEXTAUTH_SECRET (random 32-byte: openssl rand -base64 32)
 #  - ANTHROPIC_API_KEY
 #  - BLOB_READ_WRITE_TOKEN (generate di Vercel dashboard)
 
 # 3. Migrate
-pnpm prisma migrate dev --name init
+bun run prisma migrate dev --name init
 
 # 4. Run
-pnpm dev          # http://localhost:3000
+bun run dev      # http://localhost:3000
+```
+
+Commands lain:
+```bash
+bun run build       # prisma generate && next build
+bun run start       # prod server
+bun run typecheck   # tsc --noEmit
+bun run lint        # next lint
+bun run db:studio   # Prisma Studio di browser
 ```
 
 Local Postgres (alternatif Neon dev branch):
