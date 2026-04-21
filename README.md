@@ -43,7 +43,7 @@ Personal finance tracker buat track **duit masuk & keluar lintas dua negara** �
 4. Di project Vercel → **Settings** → **Environment Variables**, tambahin:
    - `DATABASE_URL` (dari Neon, pooled)
    - `DIRECT_URL` (dari Neon, direct)
-   - `NEXTAUTH_SECRET` — generate: `openssl rand -base64 32`
+   - `BETTER_AUTH_SECRET` — generate: `openssl rand -base64 32`
    - `NEXTAUTH_URL` — `https://<your-app>.vercel.app`
    - `ANTHROPIC_API_KEY` — dari https://console.anthropic.com
    - `ANTHROPIC_VISION_MODEL` (optional) — default `claude-sonnet-4-6`
@@ -55,7 +55,7 @@ Sekali doang, dari laptop:
 
 ```bash
 cp .env.example .env.local
-# isi DATABASE_URL + DIRECT_URL dari Neon (plus NEXTAUTH_SECRET dummy biar gak error)
+# isi DATABASE_URL + DIRECT_URL dari Neon (plus BETTER_AUTH_SECRET dummy biar gak error)
 bun install
 bun run prisma migrate deploy        # kalau migrations sudah ada
 # atau pertama kali:
@@ -83,7 +83,7 @@ bun install
 cp .env.example .env.local
 # isi dengan credentials lokal / Neon dev branch
 #  - DATABASE_URL + DIRECT_URL (Neon dev branch atau local postgres docker)
-#  - NEXTAUTH_SECRET (random 32-byte: openssl rand -base64 32)
+#  - BETTER_AUTH_SECRET (random 32-byte: openssl rand -base64 32)
 #  - ANTHROPIC_API_KEY
 #  - BLOB_READ_WRITE_TOKEN (generate di Vercel dashboard)
 
@@ -116,7 +116,7 @@ docker run --name fm-pg -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:1
 |---|---|---|
 | `DATABASE_URL` | ✅ | Pooled Postgres URL (Neon). Dipake app runtime. |
 | `DIRECT_URL` | ✅ | Direct Postgres URL (Neon). Dipake `prisma migrate`. |
-| `NEXTAUTH_SECRET` | ✅ | Secret JWT. `openssl rand -base64 32` |
+| `BETTER_AUTH_SECRET` | ✅ | Secret JWT. `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | ✅ (prod) | `https://<app>.vercel.app` di prod. |
 | `ANTHROPIC_API_KEY` | ✅ | API key Claude Vision. |
 | `ANTHROPIC_VISION_MODEL` | — | Default `claude-sonnet-4-6`. |

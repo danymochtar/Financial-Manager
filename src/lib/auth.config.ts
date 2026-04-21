@@ -15,6 +15,7 @@ declare module "next-auth" {
  * and Edge-runtime compatible.
  */
 export const authConfig: NextAuthConfig = {
+  secret: process.env.BETTER_AUTH_SECRET,
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   trustHost: true,
