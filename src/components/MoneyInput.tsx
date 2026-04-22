@@ -32,9 +32,10 @@ export function MoneyInput({
 
   function onInput(e: React.ChangeEvent<HTMLInputElement>) {
     const raw = e.target.value;
+    // Allow digits and ONE decimal dot for non-IDR currencies. IDR has no decimals.
     const clean = raw
       .replace(currency === "IDR" ? /[^\d]/g : /[^\d.]/g, "")
-      .replace(/(\..*)\./g, "$1"); // only first dot
+      .replace(/(\..*)\./g, "$1");
     const num = Number(clean);
     if (Number.isFinite(num)) {
       onChange(num);
@@ -50,6 +51,7 @@ export function MoneyInput({
   }
 
   function onFocus() {
+    // Show raw numeric string so user edits without thousands separators.
     setDisplay(value ? String(value) : "");
   }
 
@@ -63,7 +65,7 @@ export function MoneyInput({
       <input
         type="text"
         inputMode="decimal"
-        pattern={currency === "IDR" ? "[0-9]*" : "[0-9.]*"}
+        autoComplete="off"
         className="input pl-10 font-mono tabular-nums tracking-tight text-right"
         value={display}
         onChange={onInput}
@@ -72,9 +74,6 @@ export function MoneyInput({
         placeholder={placeholder}
         autoFocus={autoFocus}
       />
-      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] uppercase text-slate-400">
-        {decimals === 0 ? "" : ""}
-      </span>
     </div>
   );
 }
