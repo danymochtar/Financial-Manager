@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Loader2, X, Check, RefreshCw, Edit3 } from "lucide-react";
 import { useToast } from "@/components/Toast";
+import { formatShort } from "@/lib/currency";
 import { useT } from "@/lib/i18n";
 
 type QueueItem = {
@@ -233,7 +234,7 @@ function QueueCard({
           <div className="space-y-1">
             <div className="truncate text-sm font-medium">{item.merchant ?? "—"}</div>
             <div className="text-xs text-slate-500">
-              {item.total ? `${item.currency ?? ""} ${item.total.toLocaleString()}` : t("catat.notRead")}
+              {item.total ? formatShort(item.total, item.currency ?? "IDR") : t("catat.notRead")}
             </div>
             <button
               className="btn-outline w-full text-xs py-1.5"

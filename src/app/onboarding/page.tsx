@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowLeft, Plus, X, Check } from "lucide-react";
 import { useToast } from "@/components/Toast";
+import { formatShort } from "@/lib/currency";
 import { useT } from "@/lib/i18n";
 import { ACCOUNT_TEMPLATES, ASSET_TEMPLATES, DEPENDENT_RELATIONSHIPS } from "@/lib/categories";
 
@@ -598,7 +599,7 @@ function IncomeStep({
               <div>
                 <div className="font-medium text-sm">💰 {it.name}</div>
                 <div className="text-xs text-slate-500">
-                  {it.currency} {it.amount.toLocaleString()} · tgl {it.dayOfMonth}
+                  {formatShort(it.amount, it.currency)} · tgl {it.dayOfMonth}
                 </div>
               </div>
               <button
@@ -704,7 +705,7 @@ function FixedExpenseStep({
               <div>
                 <div className="font-medium text-sm">🏠 {it.name}</div>
                 <div className="text-xs text-slate-500">
-                  {it.currency} {it.amount.toLocaleString()} · tgl {it.dayOfMonth} · {it.categoryName}
+                  {formatShort(it.amount, it.currency)} · tgl {it.dayOfMonth} · {it.categoryName}
                 </div>
               </div>
               <button
@@ -800,8 +801,8 @@ function DebtStep({ items, setItems }: { items: DebtDraft[]; setItems: (v: DebtD
               <div>
                 <div className="font-medium text-sm">⛓️ {it.name}</div>
                 <div className="text-xs text-slate-500">
-                  {it.currency} {it.monthlyPayment.toLocaleString()}/bln · sisa{" "}
-                  {it.remainingAmount.toLocaleString()}
+                  {formatShort(it.monthlyPayment, it.currency)}/bln · sisa{" "}
+                  {formatShort(it.remainingAmount, it.currency)}
                 </div>
               </div>
               <button
@@ -887,7 +888,7 @@ function DependentStep({
                   {it.name}
                 </div>
                 <div className="text-xs text-slate-500">
-                  {it.currency} {it.monthlyAmount.toLocaleString()}/bln
+                  {formatShort(it.monthlyAmount, it.currency)}/bln
                 </div>
               </div>
               <button
@@ -1057,7 +1058,7 @@ function CareerStep({ items, setItems }: { items: JobDraft[]; setItems: (v: JobD
                 </div>
                 <div className="text-xs text-slate-500">
                   {j.startDate} → {j.isCurrent ? t("career.current") : j.endDate || "—"} ·{" "}
-                  {j.currency} {j.monthlySalary.toLocaleString()}/mo
+                  {formatShort(j.monthlySalary, j.currency)}/mo
                 </div>
               </div>
               <button
@@ -1193,7 +1194,7 @@ function AssetStep({ items, setItems }: { items: AssetDraft[]; setItems: (v: Ass
                 <div>
                   <div className="font-medium text-sm">{a.name}</div>
                   <div className="text-xs text-slate-500">
-                    {a.currency} {a.currentValue.toLocaleString()} · {a.purchaseDate}
+                    {formatShort(a.currentValue, a.currency)} · {a.purchaseDate}
                   </div>
                 </div>
               </div>

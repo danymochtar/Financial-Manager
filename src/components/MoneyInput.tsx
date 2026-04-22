@@ -80,10 +80,11 @@ export function MoneyInput({
 
 function formatDisplay(value: number | null | undefined, currency: string): string {
   if (value == null || !Number.isFinite(value) || value === 0) return "";
+  const isIDR = currency === "IDR";
   try {
-    return new Intl.NumberFormat(currency === "IDR" ? "id-ID" : "en-US", {
-      maximumFractionDigits: currency === "IDR" ? 0 : 2,
-      minimumFractionDigits: 0,
+    return new Intl.NumberFormat(isIDR ? "id-ID" : "en-US", {
+      maximumFractionDigits: isIDR ? 0 : 2,
+      minimumFractionDigits: isIDR ? 0 : 2,
     }).format(value);
   } catch {
     return String(value);

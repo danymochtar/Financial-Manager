@@ -5,13 +5,20 @@ export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
 
 const FORMATTERS: Record<string, Intl.NumberFormat> = {};
 
+/**
+ * Convention:
+ * - IDR: no decimals. "Rp 1.234.567". id-ID locale.
+ * - MYR / USD / SGD: always 2 decimals. "RM 1,234.56" / "$1,234.56" / "S$1,234.56".
+ */
 function getFormatter(currency: string, locale: string) {
+  const isIDR = currency === "IDR";
   const key = `${locale}:${currency}`;
   if (!FORMATTERS[key]) {
     FORMATTERS[key] = new Intl.NumberFormat(locale, {
       style: "currency",
       currency,
-      maximumFractionDigits: currency === "IDR" ? 0 : 2,
+      maximumFractionDigits: isIDR ? 0 : 2,
+      minimumFractionDigits: isIDR ? 0 : 2,
     });
   }
   return FORMATTERS[key];
@@ -27,20 +34,46 @@ export function formatMoney(
   return getFormatter(currency, locale).format(num);
 }
 
-/** Kompak: Rp 1,2jt / RM 1,2k / Rp 12rb */
+/**
+ * Kompak, tetap mengikuti aturan sen:
+ *   IDR  → tanpa desimal, suffix rb/jt/M (Rp 12rb, Rp 1,5jt, Rp 2,3M)
+ *   MYR  → RM {thousands}.xx untuk <1jt, RM {x}.xxK / .xxM untuk besar
+ *   USD  → $ {thousands}.xx (sama seperti MYR)
+ *   SGD  → S$ {thousands}.xx
+ *
+ * Rule: IDR NEVER has cents. Non-IDR ALWAYS has exactly 2 decimals on the
+ * final value (even when abbreviated to K/M).
+ */
 export function formatShort(amount: number, currency: string): string {
   const abs = Math.abs(amount);
   const sign = amount < 0 ? "-" : "";
-  const symbol = currency === "IDR" ? "Rp" : currency === "MYR" ? "RM" : currency;
+  const symbol =
+    currency === "IDR" ? "Rp " : currency === "MYR" ? "RM " : currency === "SGD" ? "S$ " : currency === "USD" ? "$ " : `${currency} `;
+
   if (currency === "IDR") {
-    if (abs >= 1_000_000_000) return `${sign}${symbol} ${(abs / 1_000_000_000).toFixed(1)}M`;
-    if (abs >= 1_000_000) return `${sign}${symbol} ${(abs / 1_000_000).toFixed(1)}jt`;
-    if (abs >= 1_000) return `${sign}${symbol} ${(abs / 1_000).toFixed(0)}rb`;
-    return `${sign}${symbol} ${abs.toFixed(0)}`;
+    if (abs >= 1_000_000_000) return `${sign}${symbol}${formatFraction(abs / 1_000_000_000, 1, "id-ID")}M`;
+    if (abs >= 1_000_000) return `${sign}${symbol}${formatFraction(abs / 1_000_000, 1, "id-ID")}jt`;
+    if (abs >= 1_000) return `${sign}${symbol}${Math.round(abs / 1_000)}rb`;
+    return `${sign}${symbol}${formatThousands(Math.round(abs), "id-ID", 0)}`;
   }
-  if (abs >= 1_000_000) return `${sign}${symbol} ${(abs / 1_000_000).toFixed(2)}M`;
-  if (abs >= 1_000) return `${sign}${symbol} ${(abs / 1_000).toFixed(1)}K`;
-  return `${sign}${symbol} ${abs.toFixed(2)}`;
+  // Non-IDR: always 2 decimals on final value.
+  if (abs >= 1_000_000) return `${sign}${symbol}${formatFraction(abs / 1_000_000, 2, "en-US")}M`;
+  if (abs >= 1_000) return `${sign}${symbol}${formatThousands(abs, "en-US", 2)}`;
+  return `${sign}${symbol}${abs.toFixed(2)}`;
+}
+
+function formatFraction(n: number, digits: number, locale: string): string {
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits,
+  }).format(n);
+}
+
+function formatThousands(n: number, locale: string, decimals: number): string {
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits: decimals,
+    minimumFractionDigits: decimals,
+  }).format(n);
 }
 
 export function toNumber(value: Prisma.Decimal | number | string | null | undefined): number {

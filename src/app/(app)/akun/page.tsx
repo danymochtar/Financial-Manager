@@ -295,7 +295,7 @@ function BalanceApplyDialog({
         {t("akun.detected")}:{" "}
         <strong>{draft?.account_name ?? t("akun.unknownAccount")}</strong>
         {draft?.currency && ` · ${draft.currency}`}
-        {draft?.balance != null && ` · ${draft.balance.toLocaleString()}`}
+        {draft?.balance != null && ` · ${formatShort(draft.balance, draft.currency ?? "IDR")}`}
       </div>
       <div>
         <label className="label">{t("akun.applyTo")}</label>
