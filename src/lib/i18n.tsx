@@ -38,7 +38,7 @@ export const TR: Record<string, { id: string; en: string }> = {
   "nav.home": { id: "Home", en: "Home" },
   "nav.akun": { id: "Akun", en: "Accounts" },
   "nav.catat": { id: "Catat", en: "Capture" },
-  "nav.dukun": { id: "Dukun", en: "Oracle" },
+  "nav.dukun": { id: "Dukun", en: "Dukun" },
   "nav.stats": { id: "Stats", en: "Stats" },
 
   // Auth
@@ -84,9 +84,15 @@ export const TR: Record<string, { id: string; en: string }> = {
   "dash.streak": { id: "Hemat Streak", en: "Saving Streak" },
   "dash.streakDays": { id: "hari", en: "days" },
   "dash.best": { id: "Best", en: "Best" },
-  "dash.dukunCta.title": { id: "Tanya Dukun Duit", en: "Ask Money Oracle" },
-  "dash.dukunCta.question": { id: "\"Realistis gak nabung Brio 2 tahun?\"", en: "\"Can I afford that car in 2 years?\"" },
-  "dash.dukunCta.sub": { id: "AI advisor baca semua data lo · 1 tap", en: "AI advisor reads all your data · 1 tap" },
+  "dash.dukunCta.title": { id: "Ritual Pesugihan", en: "Pesugihan Ritual" },
+  "dash.dukunCta.question": {
+    id: "\"Gimana biar duit gw cepat berlipat?\"",
+    en: "\"How do I grow this stash faster?\"",
+  },
+  "dash.dukunCta.sub": {
+    id: "Strategi compound + roast boros · bukan pake tuyul",
+    en: "Compound strategy + overspend roast · no supernatural",
+  },
 
   // Onboarding
   "onb.welcomeTitle": { id: "Halo", en: "Hi" },
@@ -130,38 +136,53 @@ export const TR: Record<string, { id: string; en: string }> = {
   "wajib.template": { id: "Template cepet", en: "Quick template" },
   "wajib.templateLife": { id: "Template target hidup", en: "Life goal templates" },
 
-  // Dukun
-  "dukun.title": { id: "Dukun Duit 🧙", en: "Money Oracle 🧙" },
+  // Dukun → Dukun Pesugihan
+  "dukun.title": { id: "Dukun Pesugihan 🧙", en: "Dukun Pesugihan 🧙" },
   "dukun.desc": {
-    id: "AI financial advisor. Tanya apa aja — dari safety net, plan nabung, sampe strategi lunasin hutang.",
-    en: "AI financial advisor. Ask anything — safety net, savings plan, debt payoff strategy.",
+    id: "Strategi pesugihan tanpa tuyul — tanya apa aja: dari roast boros, ritual compound, strategi investasi, sampe safety net.",
+    en: "Pesugihan (wealth ritual) without the supernatural — ask anything: roast overspending, compound rituals, investment framework, safety net.",
   },
   "dukun.greet": {
-    id: "Assalamu'alaikum, gw **Dukun Duit** 🧙. Tanyain apa aja soal keuangan lo — gw baca snapshot lo yg paling update. Mulai dari quick action di atas, atau ngetik pertanyaan di bawah.",
-    en: "Hey, I'm the **Money Oracle** 🧙. Ask anything about your finances — I read your latest snapshot. Try a quick action above or type a question below.",
+    id: "Halo, gw **Dukun Pesugihan** 🧙 — tenang, gak pake tuyul, gak pake gaib. Pesugihan gw = ritual disiplin + strategi compound. Lo mau roast habis pengeluaran bulan ini, minta framework invest yg bener, atau nanya goal nabung? Tap quick action atas atau ketik bebas di bawah.",
+    en: "Yo, I'm **Dukun Pesugihan** 🧙 — relax, no tuyul, no supernatural. My \"pesugihan\" = discipline rituals + compound strategy. Want me to roast your overspending, give you an investment framework, or plan a savings goal? Tap a quick action or type freely below.",
   },
-  "dukun.thinking": { id: "Dukun lagi meditasi...", en: "Oracle is thinking..." },
+  "dukun.thinking": { id: "Ritual lagi jalan...", en: "Ritual in progress..." },
   "dukun.placeholder": {
-    id: "Tanya apa aja... (misal: kalo mau nabung Brio bekas 120jt dalam 2 tahun realistis gak?)",
-    en: "Ask anything... (e.g. Can I afford a used car in 2 years?)",
+    id: "Tanya apa aja... (misal: ritual pesugihan biar bisa beli rumah 500jt dalam 5 thn?)",
+    en: "Ask anything... (e.g. what ritual gets me to a Rp 500M home in 5 years?)",
   },
   "dukun.clear": { id: "Bersihin chat", en: "Clear chat" },
   "dukun.disclaimer": {
-    id: "Saran dari Dukun bukan advice finansial profesional. Pake sebagai starting point, verify sebelum decide besar.",
-    en: "Oracle advice is not a replacement for professional financial advice. Use as a starting point, verify before big decisions.",
+    id: "Saran Dukun Pesugihan bukan advice finansial profesional — ini strategi umum berdasarkan data lo. Verifikasi sebelum decide besar.",
+    en: "Dukun Pesugihan gives general strategy, not professional financial advice. Verify before big decisions.",
   },
   "dukun.snapshotLabel": { id: "Snapshot Lo", en: "Your Snapshot" },
   "dukun.freeCash": { id: "Free Cash/bln", en: "Free cash/mo" },
   "dukun.investment": { id: "Investasi", en: "Investments" },
   "dukun.activeGoals": { id: "target aktif", en: "active goals" },
-  "dukun.qa.analyze": { id: "Analisa Keuangan Gw", en: "Analyze My Finances" },
-  "dukun.qa.safety": { id: "Safety Net / Dana Darurat", en: "Safety Net / Emergency Fund" },
-  "dukun.qa.savings": { id: "Plan Nabung Goal", en: "Savings Plan for Goals" },
-  "dukun.qa.reduce": { id: "Kurangin Boros Gw", en: "Reduce My Overspending" },
-  "dukun.qa.debt": { id: "Strategi Lunasin Hutang", en: "Debt Payoff Strategy" },
-  "dukun.prompt.analyze": {
-    id: "Analisa kondisi keuangan gw sekarang. Kasih tau apakah lo anggap healthy, at-risk, atau bahaya, + reasoning-nya. Sebut angka-angka kunci (income, fix expense, free cash flow, debt ratio, dll). Akhiri dengan 3 step konkret yg bisa gw lakuin minggu ini.",
-    en: "Analyze my current finances. Tell me if it's healthy, at-risk, or dangerous, with reasoning. Mention key numbers (income, fixed expense, free cash flow, debt ratio). End with 3 concrete steps I can take this week.",
+
+  "dukun.qa.roast": { id: "🔥 Roast Boros Gw", en: "🔥 Roast My Overspending" },
+  "dukun.qa.ritual": { id: "🔮 Ritual Pesugihan", en: "🔮 Pesugihan Ritual" },
+  "dukun.qa.invest": { id: "📈 Strategi Investasi", en: "📈 Investment Strategy" },
+  "dukun.qa.moneyTrail": { id: "🧭 Duit Lo Kemana?", en: "🧭 Where Did My Money Go?" },
+  "dukun.qa.safety": { id: "🛡️ Dana Darurat", en: "🛡️ Safety Net" },
+  "dukun.qa.savings": { id: "🎯 Plan Nabung Goal", en: "🎯 Savings Plan" },
+
+  "dukun.prompt.roast": {
+    id: "Roast pengeluaran gw 30 hari terakhir. Fokus ke variable expense (jajan, makan luar, belanja, hiburan). Tunjukin kategori paling boros, bandingin sama benchmark ideal (misal makan luar <15% income). Hitung opportunity cost: kalo duit yg gw bakar itu di-DCA ke reksadana selama 5 tahun dengan return konservatif 7%/yr, jadinya berapa? Habis roast, kasih 3 ritual konkret minggu ini buat cut spending.",
+    en: "Roast my last 30 days of spending. Focus on variable expenses (food, shopping, entertainment). Show which categories are the worst offenders vs ideal benchmarks (e.g. eating out <15% of income). Compute opportunity cost: if that wasted money were DCA'd into mutual funds for 5 years at a conservative 7%/yr, what would it be? After the roast, give 3 concrete rituals for this week to cut spending.",
+  },
+  "dukun.prompt.ritual": {
+    id: "Kasih gw 5 ritual pesugihan (compound habits) yg paling relevan buat kondisi gw sekarang. Ritual = kebiasaan harian/mingguan yg kalo dijalanin rutin, 5 tahun lagi net worth gw naik signifikan. Contoh: Bayar Diri Dulu 10-20% gaji auto-transfer begitu gajian, DCA reksadana Rp X/bulan, cancel zombie subscription, 24-hour rule buat impulse buy, target emergency fund naik Rp X/bulan, dll. Kasih angka konkret buat MASING-MASING ritual (bukan generic), disesuaikan sama gaji & free cash flow gw. Akhiri dengan prediksi realistis: kalo ritual ini dijalanin 5 tahun, net worth gw bisa jadi berapa?",
+    en: "Give me 5 pesugihan rituals (compound habits) most relevant to my current situation. Rituals = daily/weekly habits that, if followed consistently, meaningfully grow my net worth in 5 years. Examples: Pay Yourself First 10-20% auto-transfer on payday, monthly DCA of Rp X to mutual funds, kill zombie subscriptions, 24-hour impulse-buy rule, emergency fund grows Rp X/mo, etc. Give CONCRETE numbers for each ritual (not generic), calibrated to my salary & free cash flow. End with a realistic 5-year net-worth projection if I stick to them.",
+  },
+  "dukun.prompt.invest": {
+    id: "Kasih framework strategi investasi berdasarkan umur gw (tebak dari yearsWorked + firstJobStart), free cash flow, dan goals gw yg aktif. JANGAN rekomendasikan saham/coin spesifik — kasih framework alokasi asset aja (misal 20s: 80% equity + 20% bond/emas, 30s: 70/30, dst). Sebut: urutan prioritas (emergency fund dulu → debt clearance → invest), DCA vs lump sum, diversifikasi (gak all-in 1 crypto/saham), cek expense ratio reksadana, dan WARNING yg harus gw hindari (pinjol buat invest, margin tanpa literacy, FOMO, MLM). Akhiri dengan 3 ritual minggu ini buat mulai.",
+    en: "Give me an investment framework based on my age (infer from yearsWorked + firstJobStart), free cash flow, and active goals. DO NOT recommend specific stocks/coins — only asset allocation framework (e.g. 20s: 80% equity + 20% bond/gold, 30s: 70/30, etc.). Cover: priority order (emergency fund → debt clearance → invest), DCA vs lump sum, diversification (no single concentration), check fund expense ratios, and WARNINGS I should avoid (loans to invest, margin without literacy, FOMO, MLM). End with 3 rituals to start this week.",
+  },
+  "dukun.prompt.moneyTrail": {
+    id: "Analisa 'duit gw kemana?' — bandingin total earnings gw sepanjang karir (dari careerHistory) vs current net worth gw. Hitung savings efficiency %. Kasih narasi jujur: udah kerja X tahun, total earn Y, tapi net worth gw cuma Z% dari itu — tebak kemungkinan alasan dari data yg ada (lifestyle inflation, aset yg depresiasi, investasi kurang baik, tanggungan, dll). Jangan judging, banyak faktor valid. Akhiri dengan 3 ritual konkret buat naikin savings efficiency.",
+    en: "Analyze 'where did my money go?' — compare my total career earnings (from careerHistory) vs my current net worth. Compute savings efficiency %. Give an honest narrative: worked X years, earned Y total, net worth is only Z% of that — guess likely causes from the data (lifestyle inflation, depreciating assets, poor investments, dependents). No judgment; many causes are valid. End with 3 concrete rituals to raise savings efficiency.",
   },
   "dukun.prompt.safety": {
     id: "Hitung idealnya gw punya dana darurat berapa berdasarkan situasi gw (sandwich gen, income fix + variable, dll). Bandingin sama aset likuid gw sekarang — cukup atau belom? Kalo belom, berapa bulan gw harus nabung buat capai target? Kasih plan step-by-step.",
@@ -170,14 +191,6 @@ export const TR: Record<string, { id: string; en: string }> = {
   "dukun.prompt.savings": {
     id: "Liat goals gw yg aktif di snapshot. Buat plan nabung bulanan buat masing-masing goal, urutkan prioritas (high dulu). Kalau goal-nya gak realistis dengan free cash flow gw sekarang, kasih tau + kasih saran (extend timeline, naikin income, atau potong expense mana).",
     en: "Look at my active goals in the snapshot. Build a monthly savings plan for each, ordered by priority (high first). If any goal is unrealistic given my free cash flow, say so and suggest fixes (extend timeline, raise income, cut which expense).",
-  },
-  "dukun.prompt.reduce": {
-    id: "Liat variable expense gw 30 hari terakhir di snapshot. Tunjukin kategori mana yg paling boros, bandingkan sama benchmark ideal (misal makan luar idealnya <15% income, hiburan <5%, dll). Kasih target hemat realistis di tiap kategori + efek total penghematan per bulan kalo gw nurut.",
-    en: "Look at my variable expenses in the last 30 days. Show which categories are most wasteful, compared to ideal benchmarks (e.g. eating out ideally <15% of income, entertainment <5%). Give realistic saving targets per category and the total monthly saving if I follow them.",
-  },
-  "dukun.prompt.debt": {
-    id: "Liat cicilan & hutang CC gw. Rekomendasikan strategi avalanche (bayar yg bunga tertinggi dulu) atau snowball (yg sisa terkecil dulu) — pilih yg cocok buat psikologis gw. Tunjukin timeline lunas kalo ikutin strategi lo, + berapa bunga yg bisa dihemat.",
-    en: "Look at my installments and CC debt. Recommend avalanche (highest interest first) or snowball (smallest remaining first) strategy — pick what fits me psychologically. Show payoff timeline if I follow your strategy, and interest saved.",
   },
 
   // Setting
@@ -506,11 +519,6 @@ export const TR: Record<string, { id: string; en: string }> = {
   "dukun.netWorth": { id: "Net Worth", en: "Net Worth" },
   "dukun.physical": { id: "Aset Fisik", en: "Physical Assets" },
   "dukun.efficiency": { id: "Efisiensi tabungan", en: "Savings efficiency" },
-  "dukun.qa.moneyTrail": { id: "Duit Lo Kemana?", en: "Where Did My Money Go?" },
-  "dukun.prompt.moneyTrail": {
-    id: "Analisa 'duit gw kemana?' — bandingin total earnings gw sepanjang karir (dari careerHistory) vs current net worth gw. Hitung savings efficiency %. Kasih narasi jujur: udah kerja X tahun, total earn Y, tapi net worth gw cuma Z% dari itu — tebak kemungkinan alasan dari data yg ada (lifestyle inflation, aset yg depresiasi, investasi kurang baik, tanggungan, dll). Jangan judging, banyak faktor valid. Akhiri dengan 3 step konkret buat naikin savings efficiency.",
-    en: "Analyze 'where did my money go?' — compare my total career earnings (from careerHistory) vs my current net worth. Compute savings efficiency %. Give an honest narrative: worked X years, earned Y total, net worth is only Z% of that — guess likely causes from the data (lifestyle inflation, depreciating assets, poor investments, dependents). No judgment; many causes are valid. End with 3 concrete steps to raise savings efficiency.",
-  },
 
   // ===== Onboarding (assets + career) =====
   "onb.stepAssets": { id: "Aset Fisik", en: "Physical Assets" },

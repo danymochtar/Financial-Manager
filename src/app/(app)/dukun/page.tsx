@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, Send, Loader2, Target, ShieldCheck, PiggyBank, TrendingDown, RefreshCw, Compass } from "lucide-react";
+import { Sparkles, Send, Loader2, Target, ShieldCheck, TrendingUp, Flame, RefreshCw, Compass } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { formatShort } from "@/lib/currency";
 import { useT } from "@/lib/i18n";
@@ -41,12 +41,12 @@ type Snapshot = {
 type Msg = { id: string; role: "user" | "assistant"; content: string };
 
 const QUICK_ACTION_KEYS = [
-  { key: "analyze", labelKey: "dukun.qa.analyze", promptKey: "dukun.prompt.analyze", icon: Sparkles },
+  { key: "roast", labelKey: "dukun.qa.roast", promptKey: "dukun.prompt.roast", icon: Flame },
+  { key: "ritual", labelKey: "dukun.qa.ritual", promptKey: "dukun.prompt.ritual", icon: Sparkles },
+  { key: "invest", labelKey: "dukun.qa.invest", promptKey: "dukun.prompt.invest", icon: TrendingUp },
   { key: "money_trail", labelKey: "dukun.qa.moneyTrail", promptKey: "dukun.prompt.moneyTrail", icon: Compass },
   { key: "safety_net", labelKey: "dukun.qa.safety", promptKey: "dukun.prompt.safety", icon: ShieldCheck },
   { key: "savings_plan", labelKey: "dukun.qa.savings", promptKey: "dukun.prompt.savings", icon: Target },
-  { key: "reduce_boros", labelKey: "dukun.qa.reduce", promptKey: "dukun.prompt.reduce", icon: TrendingDown },
-  { key: "debt_strategy", labelKey: "dukun.qa.debt", promptKey: "dukun.prompt.debt", icon: PiggyBank },
 ] as const;
 
 export default function DukunPage() {
