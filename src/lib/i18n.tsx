@@ -120,10 +120,10 @@ export const TR: Record<string, { id: string; en: string }> = {
   "onb.start": { id: "Mulai Catat 🚀", en: "Start Tracking 🚀" },
 
   // Wajib
-  "wajib.title": { id: "Wajib Bulanan", en: "Monthly Essentials" },
+  "wajib.title": { id: "Dapur Duit 🍳", en: "Money Kitchen 🍳" },
   "wajib.desc": {
-    id: "Income, fix expense, cicilan, tanggungan, investasi, & target goals.",
-    en: "Income, fixed expenses, debts, dependents, investments, & life goals.",
+    id: "Semua bahan duit lo di sini: income, expense fix, aset, karir, cicilan, tanggungan, investasi, target. Tap item apa aja buat edit.",
+    en: "All your money ingredients: income, fixed expenses, assets, career, debts, dependents, investments, goals. Tap any item to edit.",
   },
   "wajib.tab.expense": { id: "Expense Fix", en: "Fixed Expense" },
   "wajib.tab.income": { id: "Income", en: "Income" },

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, Plus, X, Sparkles, Loader2 } from "lucide-react";
+import { Plus, X, Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { formatShort } from "@/lib/currency";
 import { MoneyInput, CurrencySelect } from "@/components/MoneyInput";
 import { useT } from "@/lib/i18n";
+import { QuickEditSheet, type EditTab, type EditableItem } from "@/components/wajib/QuickEditSheet";
 import {
   DEPENDENT_RELATIONSHIPS,
   DEBT_TEMPLATES,
@@ -113,6 +114,7 @@ export default function WajibPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [showAdd, setShowAdd] = useState(false);
+  const [editing, setEditing] = useState<{ tab: EditTab; item: EditableItem } | null>(null);
 
   async function load() {
     const [i, e, d, p, inv, g, a, j, c] = await Promise.all([
@@ -139,23 +141,6 @@ export default function WajibPage() {
   useEffect(() => {
     load();
   }, []);
-
-  async function remove(kind: Tab, id: string) {
-    if (!confirm(t("wajib.form.deleteConfirm"))) return;
-    const map: Record<Tab, string> = {
-      expense: "fixed-expenses",
-      income: "fixed-incomes",
-      debt: "debts",
-      dependent: "dependents",
-      investment: "investments",
-      goal: "goals",
-      asset: "assets",
-      career: "career",
-    };
-    await fetch(`/api/${map[kind]}/${id}`, { method: "DELETE" });
-    toast({ kind: "success", message: t("toast.deleted") });
-    load();
-  }
 
   const TABS: Array<{ k: Tab; l: string }> = [
     { k: "expense", l: t("wajib.tab.expense") },
@@ -202,7 +187,7 @@ export default function WajibPage() {
             title: item.name,
             sub: `${item.category.name} · d ${item.dayOfMonth ?? "-"}`,
             amount: formatShort(Number(item.amount), item.currency),
-            onDelete: () => remove("expense", item.id),
+            onClick: () => setEditing({ tab: "expense", item: item as EditableItem }),
           })}
         />
       )}
@@ -216,7 +201,7 @@ export default function WajibPage() {
             sub: `${item.account?.name ?? "—"} · d ${item.dayOfMonth ?? "-"}`,
             amount: `+${formatShort(Number(item.amount), item.currency)}`,
             amountColor: "emerald",
-            onDelete: () => remove("income", item.id),
+            onClick: () => setEditing({ tab: "income", item: item as EditableItem }),
           })}
         />
       )}
@@ -229,7 +214,7 @@ export default function WajibPage() {
             title: item.name,
             sub: `${formatShort(Number(item.remainingAmount), item.currency)}`,
             amount: `${formatShort(Number(item.monthlyPayment), item.currency)}/mo`,
-            onDelete: () => remove("debt", item.id),
+            onClick: () => setEditing({ tab: "debt", item: item as EditableItem }),
           })}
         />
       )}
@@ -243,7 +228,7 @@ export default function WajibPage() {
             title: dep.name,
             sub: DEPENDENT_RELATIONSHIPS.find((r) => r.value === dep.relationship)?.label ?? "-",
             amount: `${formatShort(Number(dep.monthlyAmount), dep.currency)}/mo`,
-            onDelete: () => remove("dependent", dep.id),
+            onClick: () => setEditing({ tab: "dependent", item: dep as EditableItem }),
           })}
         />
       )}
@@ -257,20 +242,28 @@ export default function WajibPage() {
             sub: `${t(`wajib.type.${inv.type}`)}${inv.platform ? ` · ${inv.platform}` : ""}`,
             amount: formatShort(Number(inv.currentValue), inv.currency),
             amountColor: "emerald",
-            onDelete: () => remove("investment", inv.id),
+            onClick: () => setEditing({ tab: "investment", item: inv as EditableItem }),
           })}
         />
       )}
       {tab === "asset" && (
-        <AssetList assets={assets} onChanged={load} onDelete={(id) => remove("asset", id)} />
+        <AssetList
+          assets={assets}
+          onChanged={load}
+          onEdit={(a) => setEditing({ tab: "asset", item: a as EditableItem })}
+        />
       )}
       {tab === "career" && (
-        <CareerList jobs={jobs} onDelete={(id) => remove("career", id)} />
+        <CareerList
+          jobs={jobs}
+          onEdit={(j) => setEditing({ tab: "career", item: j as EditableItem })}
+        />
       )}
       {tab === "goal" && (
         <ItemList
           items={goals}
           emptyLabel="target goal"
+          onItemClick={(g) => setEditing({ tab: "goal", item: g as EditableItem })}
           render={(g) => {
             const saved = Number(g.currentSaved);
             const target = Number(g.targetAmount);
@@ -284,7 +277,6 @@ export default function WajibPage() {
               sub: `${pct}% · ${formatShort(saved, g.currency)} / ${formatShort(target, g.currency)}${deadline}`,
               amount: priorityLabel(g.priority),
               amountColor: g.priority === 1 ? "rose" : "emerald",
-              onDelete: () => remove("goal", g.id),
             };
           }}
         />
@@ -301,6 +293,18 @@ export default function WajibPage() {
           }}
         />
       )}
+
+      {editing && (
+        <QuickEditSheet
+          tab={editing.tab}
+          item={editing.item}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -313,6 +317,7 @@ function ItemList<T extends { id: string }>({
   items,
   emptyLabel,
   render,
+  onItemClick,
 }: {
   items: T[];
   emptyLabel: string;
@@ -322,8 +327,9 @@ function ItemList<T extends { id: string }>({
     sub: string;
     amount: string;
     amountColor?: "rose" | "emerald";
-    onDelete: () => void;
+    onClick?: () => void;
   };
+  onItemClick?: (it: T) => void;
 }) {
   const { t } = useT();
   if (items.length === 0) {
@@ -333,8 +339,14 @@ function ItemList<T extends { id: string }>({
     <div className="space-y-2">
       {items.map((it) => {
         const r = render(it);
+        const handler = r.onClick ?? (onItemClick ? () => onItemClick(it) : undefined);
         return (
-          <div key={it.id} className="card flex items-center gap-3 p-3">
+          <button
+            key={it.id}
+            type="button"
+            onClick={handler}
+            className="card flex w-full items-center gap-3 p-3 text-left transition active:scale-[0.99] hover:bg-emerald-50/30"
+          >
             <span className="text-xl">{r.emoji}</span>
             <div className="flex-1 min-w-0">
               <div className="truncate text-sm font-semibold">{r.title}</div>
@@ -347,10 +359,7 @@ function ItemList<T extends { id: string }>({
             >
               {r.amount}
             </div>
-            <button className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100" onClick={r.onDelete}>
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
+          </button>
         );
       })}
     </div>
@@ -360,11 +369,11 @@ function ItemList<T extends { id: string }>({
 function AssetList({
   assets,
   onChanged,
-  onDelete,
+  onEdit,
 }: {
   assets: Asset[];
   onChanged: () => void;
-  onDelete: (id: string) => void;
+  onEdit: (a: Asset) => void;
 }) {
   const { t, locale } = useT();
   const toast = useToast();
@@ -413,7 +422,11 @@ function AssetList({
         );
         return (
           <div key={a.id} className="card p-3 space-y-2">
-            <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => onEdit(a)}
+              className="flex w-full items-center gap-3 text-left active:scale-[0.99]"
+            >
               <span className="text-2xl">{a.emoji}</span>
               <div className="flex-1 min-w-0">
                 <div className="truncate text-sm font-semibold">{a.name}</div>
@@ -421,13 +434,7 @@ function AssetList({
                   {a.details ?? a.subtype ?? a.type}
                 </div>
               </div>
-              <button
-                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100"
-                onClick={() => onDelete(a.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
+            </button>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-xl bg-slate-50 p-2">
                 <div className="text-[10px] uppercase text-slate-500">{t("asset.purchase")}</div>
@@ -481,10 +488,10 @@ function AssetList({
 
 function CareerList({
   jobs,
-  onDelete,
+  onEdit,
 }: {
   jobs: Job[];
-  onDelete: (id: string) => void;
+  onEdit: (j: Job) => void;
 }) {
   const { t, locale } = useT();
   if (jobs.length === 0) {
@@ -500,40 +507,37 @@ function CareerList({
         );
         const years = (months / 12).toFixed(1);
         return (
-          <div key={j.id} className="card p-3">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">💼</span>
-              <div className="flex-1 min-w-0">
-                <div className="truncate text-sm font-semibold">
-                  {j.employer}
-                  {j.role && <span className="ml-1 text-slate-500 font-normal">· {j.role}</span>}
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  {new Date(j.startDate).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", {
-                    month: "short",
-                    year: "numeric",
-                  })}
-                  {" → "}
-                  {j.endDate
-                    ? new Date(j.endDate).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", {
-                        month: "short",
-                        year: "numeric",
-                      })
-                    : t("career.current")}{" "}
-                  · {years}y
-                </div>
+          <button
+            type="button"
+            key={j.id}
+            onClick={() => onEdit(j)}
+            className="card flex w-full items-center gap-3 p-3 text-left active:scale-[0.99] hover:bg-emerald-50/30"
+          >
+            <span className="text-xl">💼</span>
+            <div className="flex-1 min-w-0">
+              <div className="truncate text-sm font-semibold">
+                {j.employer}
+                {j.role && <span className="ml-1 text-slate-500 font-normal">· {j.role}</span>}
               </div>
-              <div className="text-sm font-bold text-emerald-600">
-                {formatShort(Number(j.monthlySalary), j.currency)}/mo
+              <div className="text-[11px] text-slate-500">
+                {new Date(j.startDate).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", {
+                  month: "short",
+                  year: "numeric",
+                })}
+                {" → "}
+                {j.endDate
+                  ? new Date(j.endDate).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", {
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : t("career.current")}{" "}
+                · {years}y
               </div>
-              <button
-                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100"
-                onClick={() => onDelete(j.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
             </div>
-          </div>
+            <div className="text-sm font-bold text-emerald-600">
+              {formatShort(Number(j.monthlySalary), j.currency)}/mo
+            </div>
+          </button>
         );
       })}
     </div>
