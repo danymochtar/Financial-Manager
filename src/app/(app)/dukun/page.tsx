@@ -38,7 +38,7 @@ type Snapshot = {
   goals: Array<{ name: string; emoji: string; targetAmount: number; currency: string; currentSaved: number; targetDate: string | null }>;
 };
 
-type Msg = { id: string; role: "user" | "assistant"; content: string };
+type Msg = { id: string; role: "user" | "assistant"; content: string; toolsUsed?: string[] };
 
 const QUICK_ACTION_KEYS = [
   { key: "roast", labelKey: "dukun.qa.roast", promptKey: "dukun.prompt.roast", icon: Flame },
@@ -101,7 +101,15 @@ export default function DukunPage() {
         return;
       }
       if (data.snapshot) setSnapshot(data.snapshot);
-      setMsgs((prev) => [...prev, { id: String(Date.now() + 1), role: "assistant", content: data.answer }]);
+      setMsgs((prev) => [
+        ...prev,
+        {
+          id: String(Date.now() + 1),
+          role: "assistant",
+          content: data.answer,
+          toolsUsed: Array.isArray(data.toolsUsed) ? data.toolsUsed : undefined,
+        },
+      ]);
     } catch (err) {
       toast({ kind: "error", message: (err as Error).message });
     } finally {
@@ -238,11 +246,45 @@ function MessageBubble({ msg }: { msg: Msg }) {
   return (
     <div className="flex gap-2">
       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm">🧙</div>
-      <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-emerald-50/60 px-3 py-2 text-sm leading-relaxed text-slate-800">
-        <MiniMarkdown text={msg.content} />
+      <div className="max-w-[85%] space-y-1">
+        {msg.toolsUsed && msg.toolsUsed.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {uniq(msg.toolsUsed).map((t) => (
+              <span
+                key={t}
+                className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800"
+              >
+                ⚡ {toolLabel(t)}
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="rounded-2xl rounded-tl-sm bg-emerald-50/60 px-3 py-2 text-sm leading-relaxed text-slate-800">
+          <MiniMarkdown text={msg.content} />
+        </div>
       </div>
     </div>
   );
+}
+
+function uniq<T>(arr: T[]): T[] {
+  return [...new Set(arr)];
+}
+
+function toolLabel(name: string): string {
+  const map: Record<string, string> = {
+    list_accounts: "baca akun",
+    list_categories: "baca kategori",
+    list_goals: "baca goals",
+    list_assets: "baca aset",
+    add_transaction: "catet transaksi",
+    update_account_balance: "update saldo",
+    add_goal: "tambah goal",
+    add_asset: "tambah aset",
+    update_asset_value: "update nilai aset",
+    add_fixed_expense: "tambah expense fix",
+  };
+  return map[name] ?? name;
 }
 
 function MiniMarkdown({ text }: { text: string }) {

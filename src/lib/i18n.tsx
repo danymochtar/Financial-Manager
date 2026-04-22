@@ -143,13 +143,13 @@ export const TR: Record<string, { id: string; en: string }> = {
     en: "Pesugihan (wealth ritual) without the supernatural — ask anything: roast overspending, compound rituals, investment framework, safety net.",
   },
   "dukun.greet": {
-    id: "Halo, gw **Dukun Pesugihan** 🧙 — tenang, gak pake tuyul, gak pake gaib. Pesugihan gw = ritual disiplin + strategi compound. Lo mau roast habis pengeluaran bulan ini, minta framework invest yg bener, atau nanya goal nabung? Tap quick action atas atau ketik bebas di bawah.",
-    en: "Yo, I'm **Dukun Pesugihan** 🧙 — relax, no tuyul, no supernatural. My \"pesugihan\" = discipline rituals + compound strategy. Want me to roast your overspending, give you an investment framework, or plan a savings goal? Tap a quick action or type freely below.",
+    id: "Halo, gw **Dukun Pesugihan** 🧙 — tenang, gak pake tuyul, gak pake gaib. Pesugihan gw = ritual disiplin + strategi compound.\n\nSelain kasih advice, lo juga bisa **catet/update langsung lewat chat**:\n- \"catet gw beli kopi 50rb di Starbucks pake Gopay\"\n- \"update saldo BCA gw jadi 5,2jt\"\n- \"tambahin goal gw mau DP rumah 200jt 3 tahun lagi\"\n- \"mobil Brio gw skrg nilainya 120jt\"\n\nAtau tap quick action di atas.",
+    en: "Yo, I'm **Dukun Pesugihan** 🧙 — relax, no tuyul, no supernatural. My \"pesugihan\" = discipline rituals + compound strategy.\n\nBeyond advice, you can also **log/update data via chat**:\n- \"log coffee Rp 50k at Starbucks on GoPay\"\n- \"update my BCA balance to Rp 5.2M\"\n- \"add goal: home DP Rp 200M in 3 years\"\n- \"my Brio is worth Rp 120M now\"\n\nOr tap a quick action above.",
   },
   "dukun.thinking": { id: "Ritual lagi jalan...", en: "Ritual in progress..." },
   "dukun.placeholder": {
-    id: "Tanya apa aja... (misal: ritual pesugihan biar bisa beli rumah 500jt dalam 5 thn?)",
-    en: "Ask anything... (e.g. what ritual gets me to a Rp 500M home in 5 years?)",
+    id: "Tanya / catet apa aja... (mis: catet gw beli kopi 50rb pake Gopay)",
+    en: "Ask or log anything... (e.g. log coffee Rp 50k on GoPay)",
   },
   "dukun.clear": { id: "Bersihin chat", en: "Clear chat" },
   "dukun.disclaimer": {

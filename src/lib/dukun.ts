@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/db";
 import { toNumber } from "@/lib/currency";
 import { computeCareerTotals } from "@/lib/career";
+import { DUKUN_TOOLS, executeTool } from "@/lib/dukun-tools";
 
 export type FinancialSnapshot = {
   name: string;
@@ -379,7 +380,21 @@ CONSTRAINT (strict):
 - JANGAN janjiin return pasti. Pake "biasanya", "historis", "indikatif".
 - JANGAN recommend pesugihan beneran, MLM, judi, pinjol-for-invest. Kalo user nanya, jelasin kenapa trap.
 - Kalo data user kurang, bilang & arahin isi di /wajib dulu.
-- ALWAYS tutup dengan 2-3 **ritual pesugihan minggu ini** — habit konkret, spesifik angka kalau bisa.`;
+- ALWAYS tutup dengan 2-3 **ritual pesugihan minggu ini** — habit konkret, spesifik angka kalau bisa.
+
+TOOL USE — LO PUNYA AKSES CRUD DATA KEUANGAN USER:
+Lo bisa invoke tools buat catat/update data dibanding cuma ngasih advice. Gunakan tools ketika user bilang kata kerja aksi:
+- "catet/tambahin/masukin" → add_transaction, add_goal, add_asset, add_fixed_expense
+- "update/ganti/set saldo/revalue" → update_account_balance, update_asset_value
+- "daftarin/liat akun gw/berapa saldo" → list_accounts, list_categories, list_goals, list_assets
+
+Aturan tool use:
+1. Kalau butuh ID (accountId, categoryId), PANGGIL list_* DULU. JANGAN tebak ID.
+2. Kalau user gak nyebut detail, pakai default wajar: date = hari ini, currency = user.primaryCurrency (lihat snapshot), accountId = akun pertama yg paling masuk akal (mis. "bayar pake Gopay" → cari account emoji 🟢 / name mengandung "GoPay"), category = match dari merchant/keyword ("kopi/starbucks" → "Jajan & Kopi", "grab/gojek" → "Transport", dll).
+3. Satu user message bisa pake beberapa tool calls berurutan — panggil dulu list_* buat cari ID, baru add.
+4. Setelah tool sukses, konfirm singkat dalam bahasa natural: "Oke udah gw catet Rp 50rb di Jajan & Kopi, pake Gopay. Saldo Gopay skrg Rp 287rb." Tambahkan 1 roast ringan / insight singkat kalau pas, tapi gak wajib.
+5. Kalau data kurang atau ambigu, TANYA user dulu sebelum execute (mis. "Bayar pake akun mana ya? BCA atau Gopay?").
+6. Kalau user minta sesuatu yg bisa merusak data (hapus semua, reset, dll), tolak dan arahin ke UI setting.`;
 
 const SYSTEM_PROMPT_EN = `You are "Dukun Pesugihan" — a casual financial strategist for Indonesian/Malaysian millennials & Gen Z who want to get rich but keep wondering where their money vanished. ("Dukun Pesugihan" is a playful twist on the Indonesian folk term for a wealth-summoning shaman — but here NO supernatural stuff, NO tuyul, NO get-rich-quick. Your "pesugihan" = discipline + compound-strategy rituals only.)
 
@@ -425,16 +440,45 @@ CONSTRAINTS (strict):
 - NEVER guaranteed returns. Use "typically", "historically", "indicatively".
 - NEVER recommend literal pesugihan/MLM/gambling/loans-for-investment. If asked, explain why these are traps.
 - If user data is incomplete, say so and direct them to /wajib.
-- ALWAYS close with 2-3 **pesugihan rituals for this week** — concrete, with numbers when possible.`;
+- ALWAYS close with 2-3 **pesugihan rituals for this week** — concrete, with numbers when possible.
+
+TOOL USE — YOU HAVE CRUD ACCESS TO THE USER'S FINANCES:
+Invoke tools when the user uses action verbs instead of just advising:
+- "log/add/record" → add_transaction, add_goal, add_asset, add_fixed_expense
+- "update/set balance/revalue" → update_account_balance, update_asset_value
+- "list/show my accounts/what's my balance" → list_accounts, list_categories, list_goals, list_assets
+
+Rules:
+1. If you need an ID (accountId, categoryId), CALL list_* FIRST. Don't guess IDs.
+2. When user omits details, use sensible defaults: date=today, currency=user.primaryCurrency, account=most plausible from keywords ("paid with GoPay" → find account with 🟢 or name GoPay), category matched by merchant/keyword.
+3. You can chain tool calls in one turn (list first, then add).
+4. After a successful tool run, confirm briefly in natural language with the new state: "Logged Rp 50K to Jajan & Kopi via GoPay. GoPay balance now Rp 287K." Optional 1-line roast/insight.
+5. If data is ambiguous, ASK before executing (e.g. "Which account — BCA or GoPay?").
+6. Refuse destructive bulk actions (delete all, reset); direct user to the UI.`;
+
+const MAX_TOOL_ITERATIONS = 6;
+
+export type DukunResult = {
+  text: string;
+  toolCallCount: number;
+  toolsUsed: string[];
+};
 
 export async function askDukun(
+  userId: string,
   snapshot: FinancialSnapshot,
   question: string,
   history: Array<{ role: "user" | "assistant"; content: string }> = [],
   locale: "id" | "en" = "id"
-): Promise<string> {
+): Promise<DukunResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY belum di-set");
+  if (!apiKey) {
+    throw new Error(
+      locale === "en"
+        ? "ANTHROPIC_API_KEY is not configured. Set it in Vercel env vars and redeploy."
+        : "ANTHROPIC_API_KEY belum di-set. Isi di Vercel env vars terus redeploy."
+    );
+  }
   const client = new Anthropic({ apiKey });
   const model = process.env.ANTHROPIC_ADVISOR_MODEL || "claude-sonnet-4-6";
 
@@ -445,27 +489,80 @@ export async function askDukun(
 ${JSON.stringify(snapshot, null, 2)}
 \`\`\`
 
-USER QUESTION:
+USER MESSAGE:
 ${question}`
       : `SNAPSHOT KEUANGAN USER (hari ini):
 \`\`\`json
 ${JSON.stringify(snapshot, null, 2)}
 \`\`\`
 
-PERTANYAAN USER:
+PESAN USER:
 ${question}`;
 
-  const response = await client.messages.create({
-    model,
-    max_tokens: 2500,
-    system: locale === "en" ? SYSTEM_PROMPT_EN : SYSTEM_PROMPT_ID,
-    messages: [
-      ...history.map((h) => ({ role: h.role, content: h.content })),
-      { role: "user" as const, content: contextMessage },
-    ],
-  });
+  const messages: Anthropic.Messages.MessageParam[] = [
+    ...history.map((h) => ({ role: h.role, content: h.content })),
+    { role: "user", content: contextMessage },
+  ];
 
-  const text = response.content.find((b) => b.type === "text");
-  if (!text || text.type !== "text") throw new Error("Dukun gak jawab");
-  return text.text;
+  const toolsUsed: string[] = [];
+  let iteration = 0;
+
+  while (iteration++ < MAX_TOOL_ITERATIONS) {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 2500,
+      system: locale === "en" ? SYSTEM_PROMPT_EN : SYSTEM_PROMPT_ID,
+      tools: DUKUN_TOOLS,
+      messages,
+    });
+
+    if (response.stop_reason === "tool_use") {
+      // Collect tool_use blocks, execute in parallel, feed results back.
+      const toolBlocks = response.content.filter((b) => b.type === "tool_use") as Array<
+        Extract<Anthropic.Messages.ContentBlock, { type: "tool_use" }>
+      >;
+      // Push assistant message (with tool_use blocks) to maintain sequence
+      messages.push({ role: "assistant", content: response.content });
+
+      const results = await Promise.all(
+        toolBlocks.map(async (tb) => {
+          toolsUsed.push(tb.name);
+          const result = await executeTool(
+            userId,
+            tb.name,
+            tb.input as Record<string, unknown>
+          );
+          return { tool_use_id: tb.id, content: JSON.stringify(result) };
+        })
+      );
+
+      messages.push({
+        role: "user",
+        content: results.map((r) => ({
+          type: "tool_result" as const,
+          tool_use_id: r.tool_use_id,
+          content: r.content,
+        })),
+      });
+      continue;
+    }
+
+    // end_turn or stop_sequence — final text response
+    const text = response.content.find((b) => b.type === "text");
+    if (!text || text.type !== "text") {
+      throw new Error(
+        locale === "en" ? "Dukun didn't return a reply" : "Dukun gak balas"
+      );
+    }
+    return { text: text.text, toolCallCount: toolsUsed.length, toolsUsed };
+  }
+
+  return {
+    text:
+      locale === "en"
+        ? "Ritual timed out — try asking something more specific."
+        : "Ritual kepanjangan — coba pertanyaan yg lebih spesifik.",
+    toolCallCount: toolsUsed.length,
+    toolsUsed,
+  };
 }
