@@ -90,7 +90,7 @@ export function QuickEditSheet({
     if (tab === "goal") return Number(item.currentSaved ?? 0);
     return 0;
   });
-  const currency = (item.currency as Currency) ?? "IDR";
+  const [currency, setCurrency] = useState<Currency>((item.currency as Currency) ?? "IDR");
   const [dayOfMonth, setDayOfMonth] = useState<number>(item.dayOfMonth ?? 1);
   const [relationship, setRelationship] = useState<string>(item.relationship ?? "parent");
   const [platform, setPlatform] = useState<string>(item.platform ?? "");
@@ -111,6 +111,8 @@ export function QuickEditSheet({
     setBusy(true);
     try {
       const body: Record<string, unknown> = {};
+      // currency always sent — all PATCH routes accept it
+      body.currency = currency;
       if (tab === "expense" || tab === "income") {
         body.name = name;
         body.amount = primaryAmount;
@@ -144,6 +146,7 @@ export function QuickEditSheet({
         body.role = role || null;
         body.monthlySalary = primaryAmount;
         body.endDate = isCurrent ? null : endDate ? new Date(endDate).toISOString() : null;
+        body.country = currency === "MYR" ? "MY" : currency === "USD" ? "US" : currency === "SGD" ? "SG" : "ID";
       }
 
       const res = await fetch(`${API_PATH[tab]}/${item.id}`, {
@@ -372,6 +375,11 @@ export function QuickEditSheet({
           </>
         )}
 
+        <div>
+          <label className="label">{t("tx.currency")}</label>
+          <CurrencySelect value={currency} onChange={setCurrency} />
+        </div>
+
         <div className="flex gap-2 pt-1">
           <button
             type="button"
@@ -385,17 +393,7 @@ export function QuickEditSheet({
             {busy ? t("saving") : t("save")}
           </button>
         </div>
-
-        <CurrencySelectHint currency={currency} />
       </form>
-    </div>
-  );
-}
-
-function CurrencySelectHint({ currency }: { currency: string }) {
-  return (
-    <div className="text-center text-[10px] text-slate-400">
-      Currency: {currency} · mau ganti? hapus & add baru
     </div>
   );
 }

@@ -3,11 +3,15 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { badRequest, getAuthedUser, notFound, serverError, unauthorized } from "@/lib/api";
+import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 const schema = z.object({
   name: z.string().min(1).max(120).optional(),
+  type: z.enum(["property", "vehicle", "electronics", "collectible", "other"]).optional(),
+  subtype: z.string().max(60).nullable().optional(),
   emoji: z.string().optional(),
   currentValue: z.number().nonnegative().optional(),
+  currency: z.enum(SUPPORTED_CURRENCIES).optional(),
   details: z.string().max(500).nullable().optional(),
   note: z.string().max(300).nullable().optional(),
   isActive: z.boolean().optional(),
@@ -25,9 +29,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       where: { id },
       data: {
         name: data.name,
+        type: data.type,
+        subtype: data.subtype === null ? null : data.subtype,
         emoji: data.emoji,
         currentValue:
           data.currentValue != null ? new Prisma.Decimal(data.currentValue) : undefined,
+        currency: data.currency,
         details: data.details,
         note: data.note,
         isActive: data.isActive,

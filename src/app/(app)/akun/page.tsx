@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Upload, Plus, X, Check, Loader2 } from "lucide-react";
+import { Upload, Plus, X, Loader2 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { formatMoney, formatShort } from "@/lib/currency";
+import { MoneyInput, CurrencySelect } from "@/components/MoneyInput";
 import { ACCOUNT_TEMPLATES } from "@/lib/categories";
 import { useT } from "@/lib/i18n";
 
@@ -33,8 +34,7 @@ export default function AkunPage() {
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editBalance, setEditBalance] = useState(0);
+  const [editing, setEditing] = useState<Account | null>(null);
   const screenshotInput = useRef<HTMLInputElement>(null);
   const [uploadingBalance, setUploadingBalance] = useState(false);
   const [lastUpload, setLastUpload] = useState<{
@@ -55,26 +55,13 @@ export default function AkunPage() {
     void setUploads;
   }, []);
 
-  async function saveBalance(id: string) {
-    const res = await fetch(`/api/accounts/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ balance: editBalance }),
-    });
-    if (!res.ok) {
-      const d = await res.json();
-      toast({ kind: "error", message: d?.error ?? t("toast.saveFailed") });
-      return;
-    }
-    setEditingId(null);
-    toast({ kind: "success", message: t("toast.balanceUpdated") });
-    load();
-  }
-
-  async function onDelete(id: string) {
+  async function onDeleteAccount(id: string) {
     if (!confirm(t("akun.deleteConfirm"))) return;
     const res = await fetch(`/api/accounts/${id}`, { method: "DELETE" });
-    if (res.ok) load();
+    if (res.ok) {
+      setEditing(null);
+      load();
+    }
   }
 
   async function handleScreenshot(file: File) {
@@ -201,64 +188,48 @@ export default function AkunPage() {
       ) : (
         <div className="space-y-2">
           {accounts.map((a) => (
-            <div key={a.id} className="card p-3">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{a.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="truncate text-sm font-semibold">{a.name}</div>
-                  <div className="text-[11px] text-slate-500 capitalize">
-                    {a.type.replace("_", " ")} · {a.currency}
-                  </div>
+            <button
+              type="button"
+              key={a.id}
+              onClick={() => setEditing(a)}
+              className="card flex w-full items-center gap-3 p-3 text-left active:scale-[0.99] hover:bg-emerald-50/30"
+            >
+              <span className="text-2xl">{a.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <div className="truncate text-sm font-semibold">{a.name}</div>
+                <div className="text-[11px] text-slate-500 capitalize">
+                  {a.type.replace("_", " ")} · {a.currency}
                 </div>
-                {editingId === a.id ? (
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      className="input w-28 py-1.5 text-sm"
-                      value={editBalance || ""}
-                      onChange={(e) => setEditBalance(Number(e.target.value))}
-                    />
-                    <button className="p-1.5" onClick={() => saveBalance(a.id)}>
-                      <Check className="h-4 w-4 text-emerald-600" />
-                    </button>
-                    <button className="p-1.5" onClick={() => setEditingId(null)}>
-                      <X className="h-4 w-4 text-slate-400" />
-                    </button>
+              </div>
+              <div className="text-right">
+                <div
+                  className={`text-sm font-bold ${
+                    a.type === "credit_card" ? "text-rose-600" : "text-slate-900"
+                  }`}
+                >
+                  {formatMoney(a.balance, a.currency)}
+                </div>
+                {a.creditLimit && (
+                  <div className="text-[10px] text-slate-500">
+                    {t("akun.limit")} {formatShort(Number(a.creditLimit), a.currency)}
                   </div>
-                ) : (
-                  <button
-                    className="text-right"
-                    onClick={() => {
-                      setEditingId(a.id);
-                      setEditBalance(Number(a.balance));
-                    }}
-                  >
-                    <div
-                      className={`text-sm font-bold ${
-                        a.type === "credit_card" ? "text-rose-600" : "text-slate-900"
-                      }`}
-                    >
-                      {formatMoney(a.balance, a.currency)}
-                    </div>
-                    {a.creditLimit && (
-                      <div className="text-[10px] text-slate-500">
-                        {t("akun.limit")} {formatShort(Number(a.creditLimit), a.currency)}
-                      </div>
-                    )}
-                  </button>
                 )}
               </div>
-              <div className="mt-2 flex items-center justify-end gap-2">
-                <button
-                  className="text-[11px] text-rose-500 hover:underline"
-                  onClick={() => onDelete(a.id)}
-                >
-                  {t("delete")}
-                </button>
-              </div>
-            </div>
+            </button>
           ))}
         </div>
+      )}
+
+      {editing && (
+        <AccountEditSheet
+          account={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            load();
+          }}
+          onDeleted={() => onDeleteAccount(editing.id)}
+        />
       )}
 
       {showAdd && <AddAccountSheet onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); load(); }} />}
@@ -463,6 +434,140 @@ function AddAccountSheet({ onClose, onAdded }: { onClose: () => void; onAdded: (
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function AccountEditSheet({
+  account,
+  onClose,
+  onSaved,
+  onDeleted,
+}: {
+  account: Account;
+  onClose: () => void;
+  onSaved: () => void;
+  onDeleted: () => void;
+}) {
+  const { t } = useT();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const [emoji, setEmoji] = useState(account.emoji);
+  const [name, setName] = useState(account.name);
+  const [type, setType] = useState<"bank" | "ewallet" | "cash" | "credit_card">(
+    account.type as "bank" | "ewallet" | "cash" | "credit_card"
+  );
+  const [currency, setCurrency] = useState<"IDR" | "MYR" | "USD" | "SGD">(
+    account.currency as "IDR" | "MYR" | "USD" | "SGD"
+  );
+  const [balance, setBalance] = useState(Number(account.balance));
+  const [creditLimit, setCreditLimit] = useState(
+    account.creditLimit ? Number(account.creditLimit) : 0
+  );
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/accounts/${account.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emoji,
+          name,
+          type,
+          currency,
+          balance,
+          creditLimit: type === "credit_card" ? creditLimit : null,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        toast({ kind: "error", message: d?.error ?? t("toast.saveFailed") });
+        return;
+      }
+      toast({ kind: "success", message: t("toast.saved") });
+      onSaved();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <form
+        className="w-full max-w-md space-y-3 rounded-3xl bg-white p-5 shadow-2xl max-h-[85vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={submit}
+      >
+        <div className="flex items-center justify-between">
+          <div className="text-lg font-bold">Edit Akun</div>
+          <button type="button" onClick={onClose} className="text-slate-400">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
+          <input
+            className="input text-sm w-14 text-center"
+            value={emoji}
+            onChange={(e) => setEmoji(e.target.value)}
+            maxLength={4}
+          />
+          <input
+            className="input text-sm"
+            placeholder={t("wajib.form.name")}
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <select
+            className="input text-sm"
+            value={type}
+            onChange={(e) => setType(e.target.value as typeof type)}
+          >
+            <option value="bank">{t("akun.typeBank")}</option>
+            <option value="ewallet">{t("akun.typeEwallet")}</option>
+            <option value="cash">{t("akun.typeCash")}</option>
+            <option value="credit_card">{t("akun.typeCC")}</option>
+          </select>
+          <CurrencySelect value={currency} onChange={setCurrency} />
+        </div>
+
+        <div>
+          <label className="label">
+            {type === "credit_card" ? t("onb.f.ccBalance") : t("onb.f.balance")}
+          </label>
+          <MoneyInput value={balance} onChange={setBalance} currency={currency} />
+        </div>
+
+        {type === "credit_card" && (
+          <div>
+            <label className="label">{t("akun.limitCard")}</label>
+            <MoneyInput value={creditLimit} onChange={setCreditLimit} currency={currency} />
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-1">
+          <button
+            type="button"
+            onClick={onDeleted}
+            className="btn-outline flex-1 text-rose-600"
+            disabled={busy}
+          >
+            {t("delete")}
+          </button>
+          <button type="submit" className="btn-primary flex-[2]" disabled={busy}>
+            {busy ? t("saving") : t("save")}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

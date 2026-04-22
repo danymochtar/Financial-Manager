@@ -3,11 +3,13 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { badRequest, getAuthedUser, notFound, serverError, unauthorized } from "@/lib/api";
+import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 const schema = z.object({
   name: z.string().min(1).max(80).optional(),
   relationship: z.enum(["parent", "sibling", "child", "partner", "other"]).optional(),
   monthlyAmount: z.number().positive().optional(),
+  currency: z.enum(SUPPORTED_CURRENCIES).optional(),
   note: z.string().max(200).nullable().optional(),
 });
 
@@ -26,6 +28,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         relationship: data.relationship,
         monthlyAmount:
           data.monthlyAmount != null ? new Prisma.Decimal(data.monthlyAmount) : undefined,
+        currency: data.currency,
         note: data.note,
       },
     });

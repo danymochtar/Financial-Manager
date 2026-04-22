@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { badRequest, getAuthedUser, notFound, serverError, unauthorized } from "@/lib/api";
+import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 const schema = z.object({
   employer: z.string().min(1).max(120).optional(),
@@ -10,6 +11,8 @@ const schema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().nullable().optional(),
   monthlySalary: z.number().positive().optional(),
+  currency: z.enum(SUPPORTED_CURRENCIES).optional(),
+  country: z.string().length(2).optional(),
   note: z.string().max(200).nullable().optional(),
 });
 
@@ -30,6 +33,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         endDate: data.endDate === null ? null : data.endDate ? new Date(data.endDate) : undefined,
         monthlySalary:
           data.monthlySalary != null ? new Prisma.Decimal(data.monthlySalary) : undefined,
+        currency: data.currency,
+        country: data.country ? data.country.toUpperCase() : undefined,
         note: data.note,
       },
     });

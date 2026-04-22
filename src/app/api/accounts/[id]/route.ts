@@ -3,9 +3,12 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { badRequest, getAuthedUser, notFound, serverError, unauthorized } from "@/lib/api";
+import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 const schema = z.object({
   name: z.string().min(1).max(80).optional(),
+  type: z.enum(["bank", "ewallet", "cash", "credit_card"]).optional(),
+  currency: z.enum(SUPPORTED_CURRENCIES).optional(),
   balance: z.number().optional(),
   creditLimit: z.number().nullable().optional(),
   emoji: z.string().optional(),
@@ -25,6 +28,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       where: { id },
       data: {
         name: data.name,
+        type: data.type,
+        currency: data.currency,
         balance: data.balance != null ? new Prisma.Decimal(data.balance) : undefined,
         creditLimit:
           data.creditLimit != null
