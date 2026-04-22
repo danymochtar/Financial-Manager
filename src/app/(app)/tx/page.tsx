@@ -66,13 +66,13 @@ export default function TxPage() {
         </Link>
       </div>
 
-      <div className="flex gap-1 overflow-x-auto rounded-full bg-white p-1 border border-pink-100 text-xs">
+      <div className="flex gap-1 overflow-x-auto rounded-full bg-white p-1 border border-emerald-100 text-xs">
         {FILTERS.map(({ k, l }) => (
           <button
             key={k}
             onClick={() => setFilter(k)}
             className={`whitespace-nowrap rounded-full px-3 py-1.5 font-medium ${
-              filter === k ? "bg-pink-600 text-white" : "text-slate-600"
+              filter === k ? "bg-emerald-600 text-white" : "text-slate-600"
             }`}
           >
             {l}
@@ -91,12 +91,12 @@ export default function TxPage() {
               <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 {day}
               </div>
-              <div className="card divide-y divide-pink-50">
+              <div className="card divide-y divide-emerald-50">
                 {txs.map((tx) => (
                   <Link
                     key={tx.id}
                     href={`/tx/${tx.id}`}
-                    className="flex items-center gap-3 p-3 active:bg-pink-50/40"
+                    className="flex items-center gap-3 p-3 active:bg-emerald-50/40"
                   >
                     <span className="text-xl">{tx.category.emoji}</span>
                     <div className="flex-1 min-w-0">

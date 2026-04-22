@@ -48,13 +48,13 @@ export default function AnalyticsPage() {
           <h1 className="text-2xl font-bold tracking-tight">{t("analytics.title")}</h1>
           <p className="text-sm text-slate-600">{t("analytics.desc")}</p>
         </div>
-        <div className="inline-flex rounded-full bg-white p-0.5 border border-pink-100 text-xs">
+        <div className="inline-flex rounded-full bg-white p-0.5 border border-emerald-100 text-xs">
           {(["IDR", "MYR"] as Currency[]).map((c) => (
             <button
               key={c}
               onClick={() => setCurr(c)}
               className={`px-3 py-1 rounded-full font-medium ${
-                curr === c ? "bg-pink-600 text-white" : "text-slate-600"
+                curr === c ? "bg-emerald-600 text-white" : "text-slate-600"
               }`}
             >
               {c}
@@ -65,8 +65,8 @@ export default function AnalyticsPage() {
 
       {summary && (
         <>
-          <div className="card bg-gradient-to-br from-orange-500 via-pink-500 to-purple-500 p-5 text-white">
-            <Flame className="h-8 w-8" />
+          <div className="card bg-gradient-to-br from-emerald-700 via-emerald-600 to-amber-500 p-5 text-white">
+            <Flame className="h-8 w-8 text-amber-100" />
             <div className="mt-2 text-xs uppercase tracking-wider opacity-90">{t("dash.streak")}</div>
             <div className="text-4xl font-bold">{summary.streak.currentStreak} 🔥</div>
             <div className="text-xs opacity-90">

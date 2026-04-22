@@ -62,7 +62,7 @@ function LoginForm() {
       </form>
       <p className="mt-4 text-center text-sm text-slate-600">
         {t("auth.noAccount")}{" "}
-        <Link href="/register" className="font-semibold text-pink-700">
+        <Link href="/register" className="font-semibold text-emerald-700">
           {t("auth.register")}
         </Link>
       </p>

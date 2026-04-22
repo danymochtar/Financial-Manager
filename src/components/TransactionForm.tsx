@@ -118,7 +118,7 @@ export function TransactionForm({
                 ? type === "expense"
                   ? "border-rose-300 bg-rose-50 text-rose-700"
                   : "border-emerald-300 bg-emerald-50 text-emerald-700"
-                : "border-pink-100 bg-white text-slate-600"
+                : "border-emerald-100 bg-white text-slate-600"
             }`}
           >
             {type === "expense" ? t("tx.typeExpense") : t("tx.typeIncome")}

@@ -111,7 +111,7 @@ export default function RegisterPage() {
       </form>
       <p className="mt-4 text-center text-sm text-slate-600">
         {t("auth.hasAccount")}{" "}
-        <Link href="/login" className="font-semibold text-pink-700">
+        <Link href="/login" className="font-semibold text-emerald-700">
           {t("auth.login")}
         </Link>
       </p>

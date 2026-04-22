@@ -141,9 +141,9 @@ export default function AkunPage() {
       <button
         type="button"
         onClick={() => screenshotInput.current?.click()}
-        className="card flex w-full items-center gap-3 border-2 border-dashed border-pink-200 bg-pink-50/40 p-4"
+        className="card flex w-full items-center gap-3 border-2 border-dashed border-emerald-200 bg-emerald-50/40 p-4"
       >
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-emerald-600 to-emerald-500 text-white">
           <Upload className="h-5 w-5" />
         </div>
         <div className="flex-1 text-left">
@@ -164,7 +164,7 @@ export default function AkunPage() {
       />
 
       {uploadingBalance && (
-        <div className="card flex items-center gap-2 p-3 text-sm text-pink-700">
+        <div className="card flex items-center gap-2 p-3 text-sm text-emerald-700">
           <Loader2 className="h-4 w-4 animate-spin" /> {t("akun.ocrLoading")}
         </div>
       )}
@@ -284,7 +284,7 @@ function BalanceApplyDialog({
   const [balance, setBalance] = useState<number>(draft?.balance ?? 0);
 
   return (
-    <div className="card bg-pink-50/60 p-4 space-y-3 border-pink-300">
+    <div className="card bg-emerald-50/60 p-4 space-y-3 border-emerald-300">
       <div className="flex items-center justify-between">
         <div className="text-sm font-semibold">{t("akun.ocrResult")}</div>
         <button onClick={onClose} className="text-slate-400 hover:text-slate-600">

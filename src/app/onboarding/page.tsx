@@ -258,7 +258,7 @@ export default function OnboardingPage() {
           <div
             key={s.key}
             className={`h-1.5 flex-1 rounded-full transition ${
-              i <= step ? "bg-gradient-to-r from-pink-500 to-orange-500" : "bg-pink-100"
+              i <= step ? "bg-gradient-to-r from-emerald-500 to-orange-500" : "bg-emerald-100"
             }`}
           />
         ))}
@@ -338,7 +338,7 @@ export default function OnboardingPage() {
         )}
       </div>
 
-      <div className="sticky bottom-0 flex items-center gap-2 border-t border-pink-100 bg-white/95 px-5 py-4 backdrop-blur safe-b">
+      <div className="sticky bottom-0 flex items-center gap-2 border-t border-emerald-100 bg-white/95 px-5 py-4 backdrop-blur safe-b">
         {step > 0 && !isLast && (
           <button className="btn-ghost" onClick={back} disabled={busy}>
             <ArrowLeft className="h-4 w-4" /> {t("back")}
@@ -950,7 +950,7 @@ function BudgetStep({ value, setValue }: { value: BudgetDraft; setValue: (v: Bud
     <div className="mt-3 space-y-4">
       <p className="text-sm text-slate-600">{t("onb.budget.subtitle")}</p>
       <div className="card p-4 space-y-3">
-        <div className="text-sm font-semibold text-pink-700">{t("onb.b.rupiah")}</div>
+        <div className="text-sm font-semibold text-emerald-700">{t("onb.b.rupiah")}</div>
         <BudgetRow
           label={t("onb.b.daily")}
           value={value.dailyIDR ?? ""}
@@ -968,7 +968,7 @@ function BudgetStep({ value, setValue }: { value: BudgetDraft; setValue: (v: Bud
         />
       </div>
       <div className="card p-4 space-y-3">
-        <div className="text-sm font-semibold text-pink-700">{t("onb.b.ringgit")}</div>
+        <div className="text-sm font-semibold text-emerald-700">{t("onb.b.ringgit")}</div>
         <BudgetRow
           label={t("onb.b.daily")}
           value={value.dailyMYR ?? ""}

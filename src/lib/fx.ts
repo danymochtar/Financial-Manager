@@ -122,3 +122,44 @@ export async function computeDualBase(
     amountMYR: Math.round(amount * myrRate * 10000) / 10000,
   };
 }
+
+export type FxMatrix = {
+  date: string;
+  rates: Record<string, Record<string, number>>; // rates[from][to]
+};
+
+const SUPPORTED_MATRIX = ["IDR", "MYR", "USD", "SGD"] as const;
+
+/**
+ * Full FX matrix for all supported currency pairs, for a given day.
+ * Dashboard uses this to convert any balance to any single display
+ * currency with a consistent daily rate. Cached via getRate() so only
+ * the first call of the day hits the external provider.
+ */
+export async function getFxMatrix(date: Date = new Date()): Promise<FxMatrix> {
+  const day = startOfDayUTC(date);
+  const rates: Record<string, Record<string, number>> = {};
+  for (const from of SUPPORTED_MATRIX) {
+    rates[from] = {};
+    for (const to of SUPPORTED_MATRIX) {
+      if (from === to) {
+        rates[from][to] = 1;
+      } else {
+        rates[from][to] = await getRate(day, from, to);
+      }
+    }
+  }
+  return { date: toISODate(day), rates };
+}
+
+export function convertWithMatrix(
+  amount: number,
+  from: string,
+  to: string,
+  matrix: FxMatrix
+): number {
+  if (from === to) return amount;
+  const rate = matrix.rates[from]?.[to];
+  if (rate == null) return amount;
+  return amount * rate;
+}

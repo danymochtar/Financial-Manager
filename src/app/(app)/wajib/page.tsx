@@ -175,13 +175,13 @@ export default function WajibPage() {
         <p className="text-sm text-slate-600">{t("wajib.desc")}</p>
       </div>
 
-      <div className="flex gap-1 overflow-x-auto rounded-full bg-white p-1 border border-pink-100 text-xs">
+      <div className="flex gap-1 overflow-x-auto rounded-full bg-white p-1 border border-emerald-100 text-xs">
         {TABS.map(({ k, l }) => (
           <button
             key={k}
             onClick={() => setTab(k)}
             className={`whitespace-nowrap rounded-full px-3 py-1.5 font-medium ${
-              tab === k ? "bg-pink-600 text-white" : "text-slate-600"
+              tab === k ? "bg-emerald-600 text-white" : "text-slate-600"
             }`}
           >
             {l}
@@ -439,8 +439,8 @@ function AssetList({
                   })}
                 </div>
               </div>
-              <div className="rounded-xl bg-pink-50 p-2">
-                <div className="text-[10px] uppercase text-pink-700">{t("asset.current")}</div>
+              <div className="rounded-xl bg-emerald-50 p-2">
+                <div className="text-[10px] uppercase text-emerald-700">{t("asset.current")}</div>
                 <div className="font-semibold">{formatShort(current, a.currency)}</div>
                 <div className={`text-[10px] ${deltaColor}`}>
                   {delta >= 0 ? "▲" : "▼"} {Math.abs(pct)}%

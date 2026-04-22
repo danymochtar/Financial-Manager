@@ -12,7 +12,7 @@ export default async function OnboardingLayout({ children }: { children: React.R
     <SessionProvider>
       <LocaleProvider>
         <ToastProvider>
-          <div className="mx-auto flex min-h-[100dvh] max-w-app flex-col bg-gradient-to-b from-pink-50 to-orange-50">
+          <div className="mx-auto flex min-h-[100dvh] max-w-app flex-col bg-gradient-to-b from-emerald-50 via-white to-amber-50/60">
             <OnboardingHeader />
             {children}
           </div>

@@ -4,7 +4,7 @@ import { AuthLocaleToggle, BrandTitle } from "@/components/AuthLocaleToggle";
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <LocaleProvider>
-      <div className="mx-auto flex min-h-[100dvh] max-w-app flex-col items-center justify-center bg-gradient-to-b from-pink-50 via-orange-50 to-white px-5 py-8 safe-t safe-b relative">
+      <div className="mx-auto flex min-h-[100dvh] max-w-app flex-col items-center justify-center bg-gradient-to-b from-emerald-50 via-white to-amber-50 px-5 py-8 safe-t safe-b relative">
         <div className="absolute top-4 right-4">
           <AuthLocaleToggle />
         </div>

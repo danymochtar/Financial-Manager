@@ -3,22 +3,28 @@
 @tailwind utilities;
 
 :root {
-  --bg: 255 250 245;
-  --fg: 28 25 23;
+  /* "Mata duitan" palette — money green with subtle cream background */
+  --bg: 247 253 249;
+  --fg: 15 30 25;
   --card: 255 255 255;
-  --border: 245 232 230;
-  --muted: 252 244 238;
-  --muted-foreground: 120 100 95;
-  --brand-50: 253 242 248;
-  --brand-100: 252 231 243;
-  --brand-400: 244 114 182;
-  --brand-500: 236 72 153;
-  --brand-600: 219 39 119;
-  --brand-700: 190 24 93;
+  --border: 225 242 233;
+  --muted: 240 250 246;
+  --muted-foreground: 60 85 75;
+
+  --brand-50: 236 253 245;
+  --brand-100: 209 250 229;
+  --brand-200: 167 243 208;
+  --brand-400: 52 211 153;
+  --brand-500: 16 185 129;
+  --brand-600: 5 150 105;
+  --brand-700: 4 120 87;
+  --brand-800: 6 95 70;
+  --brand-900: 6 78 59;
+
+  --gold: 251 191 36; /* amber-400 accent */
   --success: 34 197 94;
   --warn: 234 179 8;
   --danger: 239 68 68;
-  --accent: 251 146 60;
 
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -37,7 +43,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* input font-size ≥ 16px supaya iOS gak auto-zoom saat focus */
 input,
 select,
 textarea {
@@ -61,10 +66,10 @@ body {
     min-height: 48px;
   }
   .btn-primary {
-    @apply btn bg-gradient-to-r from-pink-500 to-orange-500 text-white shadow-lg shadow-pink-500/25;
+    @apply btn bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-lg shadow-emerald-600/25;
   }
   .btn-outline {
-    @apply btn border border-pink-100 bg-white hover:bg-pink-50 text-pink-700;
+    @apply btn border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-700;
   }
   .btn-ghost {
     @apply btn text-slate-700 hover:bg-slate-100;
@@ -73,25 +78,25 @@ body {
     @apply btn bg-red-500 text-white;
   }
   .card {
-    @apply rounded-3xl border border-pink-100/60 bg-white shadow-sm;
+    @apply rounded-3xl border border-emerald-100/70 bg-white shadow-sm;
   }
   .input {
-    @apply w-full rounded-2xl border border-pink-100 bg-white px-4 py-3 text-base placeholder:text-slate-400 focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100;
+    @apply w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-base placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100;
   }
   .label {
     @apply text-xs font-semibold uppercase tracking-wide text-slate-500;
   }
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full border border-pink-100 bg-pink-50/60 px-2.5 py-0.5 text-xs text-pink-700;
+    @apply inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50/70 px-2.5 py-0.5 text-xs text-emerald-700;
   }
   .nav-pill {
     @apply inline-flex items-center gap-1 rounded-full bg-white/70 backdrop-blur px-3 py-1 text-xs;
   }
   .stat-tile {
-    @apply rounded-2xl bg-white p-4 border border-pink-50 shadow-sm;
+    @apply rounded-2xl bg-white p-4 border border-emerald-100/60 shadow-sm;
   }
 }
 
 @media (prefers-color-scheme: dark) {
-  /* keep light for now — milenial tone lebih cerah */
+  /* keep light for now — money-green looks best bright */
 }

@@ -117,7 +117,7 @@ export default function CatatPage() {
       <button
         type="button"
         onClick={() => cameraInput.current?.click()}
-        className="card flex w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-pink-300 bg-pink-50/50 py-8 text-pink-700 active:scale-[0.99]"
+        className="card flex w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-emerald-300 bg-emerald-50/50 py-8 text-emerald-700 active:scale-[0.99]"
       >
         <Camera className="h-10 w-10" />
         <div className="font-semibold">{t("catat.takePhotoBtn")}</div>

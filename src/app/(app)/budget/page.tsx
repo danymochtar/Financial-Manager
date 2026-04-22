@@ -84,7 +84,7 @@ export default function BudgetPage() {
       ) : (
         <>
           <div className="card p-4 space-y-4">
-            <div className="text-sm font-semibold text-pink-700">{t("budget.overallIDR")}</div>
+            <div className="text-sm font-semibold text-emerald-700">{t("budget.overallIDR")}</div>
             {(["daily", "weekly", "monthly"] as const).map((p) => (
               <BudgetRow
                 key={`idr-${p}`}
@@ -102,7 +102,7 @@ export default function BudgetPage() {
           </div>
 
           <div className="card p-4 space-y-4">
-            <div className="text-sm font-semibold text-pink-700">{t("budget.overallMYR")}</div>
+            <div className="text-sm font-semibold text-emerald-700">{t("budget.overallMYR")}</div>
             {(["daily", "weekly", "monthly"] as const).map((p) => (
               <BudgetRow
                 key={`myr-${p}`}
@@ -120,12 +120,12 @@ export default function BudgetPage() {
           </div>
 
           <div className="card p-4">
-            <div className="mb-3 text-sm font-semibold text-pink-700">{t("budget.perCategory")}</div>
+            <div className="mb-3 text-sm font-semibold text-emerald-700">{t("budget.perCategory")}</div>
             <CategoryBudgetForm categories={expenseCats} onSaved={load} />
             {catBudgets.length > 0 && (
               <div className="mt-3 space-y-2">
                 {catBudgets.map((b) => (
-                  <div key={b.id} className="flex items-center justify-between rounded-xl bg-pink-50/60 p-2 text-sm">
+                  <div key={b.id} className="flex items-center justify-between rounded-xl bg-emerald-50/60 p-2 text-sm">
                     <div>
                       <span className="font-medium">{b.category?.emoji} {b.category?.name}</span>{" "}
                       <span className="text-xs text-slate-500">{b.period}</span>

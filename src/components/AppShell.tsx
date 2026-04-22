@@ -24,12 +24,12 @@ function Shell({ userName, children }: { userName: string; children: React.React
   const onboarding = pathname.startsWith("/onboarding");
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] max-w-app flex-col bg-gradient-to-b from-pink-50/50 to-orange-50/30">
+    <div className="mx-auto flex min-h-[100dvh] max-w-app flex-col bg-gradient-to-b from-emerald-50/60 to-white">
       {!onboarding && (
         <header className="px-4 pt-5 safe-t">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-pink-600">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600">
                 {t("brand.name")}
               </div>
               <div className="text-xs text-slate-500">
@@ -75,7 +75,7 @@ function Shell({ userName, children }: { userName: string; children: React.React
 
 function LocaleSwitch({ locale, setLocale }: { locale: Locale; setLocale: (l: Locale) => void }) {
   return (
-    <div className="inline-flex rounded-full bg-white p-0.5 border border-pink-100 text-[10px]">
+    <div className="inline-flex rounded-full bg-white p-0.5 border border-emerald-100 text-[10px]">
       {(["id", "en"] as Locale[]).map((l) => (
         <button
           key={l}
@@ -83,7 +83,7 @@ function LocaleSwitch({ locale, setLocale }: { locale: Locale; setLocale: (l: Lo
           onClick={() => setLocale(l)}
           className={cn(
             "px-2 py-0.5 rounded-full font-semibold uppercase",
-            locale === l ? "bg-pink-600 text-white" : "text-slate-500"
+            locale === l ? "bg-emerald-600 text-white" : "text-slate-500"
           )}
           aria-pressed={locale === l}
         >
@@ -99,7 +99,7 @@ function BottomNav({ pathname }: { pathname: string }) {
   const active = (href: string) => pathname === href || (href !== "/" && pathname.startsWith(href));
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-app bg-white/90 backdrop-blur border-t border-pink-100"
+      className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-app bg-white/90 backdrop-blur border-t border-emerald-100"
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px))" }}
     >
       <div className="relative grid grid-cols-5 h-16">
@@ -108,7 +108,7 @@ function BottomNav({ pathname }: { pathname: string }) {
         <div className="relative flex items-center justify-center">
           <Link
             href="/catat"
-            className="absolute -top-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white shadow-xl shadow-pink-500/40 active:scale-95"
+            className="absolute -top-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-600 to-emerald-500 text-white ring-4 ring-white shadow-xl shadow-emerald-500/40 active:scale-95"
             aria-label={t("nav.catat")}
           >
             <Camera className="h-7 w-7" />
@@ -137,7 +137,7 @@ function NavItem({
       href={href}
       className={cn(
         "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium",
-        active ? "text-pink-600" : "text-slate-500"
+        active ? "text-emerald-600" : "text-slate-500"
       )}
     >
       <Icon className="h-5 w-5" />

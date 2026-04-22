@@ -56,7 +56,7 @@ export default function ReviewPage() {
               <img
                 src={`/api/receipts/${r.id}/image`}
                 alt=""
-                className="h-14 w-14 rounded-xl border border-pink-100 object-cover"
+                className="h-14 w-14 rounded-xl border border-emerald-100 object-cover"
               />
               <div className="flex-1 min-w-0">
                 <div className="truncate text-sm font-semibold">

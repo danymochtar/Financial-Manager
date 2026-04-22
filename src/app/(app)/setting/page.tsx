@@ -47,14 +47,14 @@ export default function SettingPage() {
 
       <div className="card p-4">
         <label className="label">{t("setting.language")}</label>
-        <div className="mt-2 inline-flex rounded-full bg-white p-0.5 border border-pink-100 text-sm">
+        <div className="mt-2 inline-flex rounded-full bg-white p-0.5 border border-emerald-100 text-sm">
           {(["id", "en"] as Locale[]).map((l) => (
             <button
               key={l}
               type="button"
               onClick={() => setLocale(l)}
               className={`px-4 py-1.5 rounded-full font-semibold uppercase ${
-                locale === l ? "bg-pink-600 text-white" : "text-slate-500"
+                locale === l ? "bg-emerald-600 text-white" : "text-slate-500"
               }`}
             >
               {l === "id" ? "🇮🇩 Bahasa" : "🇺🇸 English"}
@@ -92,7 +92,7 @@ export default function SettingPage() {
         </button>
       </form>
 
-      <div className="card divide-y divide-pink-50">
+      <div className="card divide-y divide-emerald-50">
         <QuickLink href="/budget" icon={PiggyBank} label={t("budget.title")} desc={t("budget.desc")} />
         <QuickLink href="/wajib" icon={Receipt} label={t("wajib.title")} desc={t("wajib.desc")} />
         <QuickLink href="/akun" icon={Wallet} label={t("akun.title")} desc={t("akun.newBtn")} />
@@ -122,8 +122,8 @@ function QuickLink({
   desc: string;
 }) {
   return (
-    <Link href={href} className="flex items-center gap-3 p-3 active:bg-pink-50/40">
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-pink-50 text-pink-600">
+    <Link href={href} className="flex items-center gap-3 p-3 active:bg-emerald-50/40">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
         <Icon className="h-4 w-4" />
       </div>
       <div className="flex-1">

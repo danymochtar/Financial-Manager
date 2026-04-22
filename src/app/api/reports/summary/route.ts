@@ -4,6 +4,7 @@ import { getAuthedUser, unauthorized } from "@/lib/api";
 import { sumInBase, toNumber } from "@/lib/currency";
 import { periodRange, startOfMonth, endOfMonth } from "@/lib/period";
 import { computeHematStreak } from "@/lib/streak";
+import { convertWithMatrix, getFxMatrix } from "@/lib/fx";
 
 export async function GET(req: Request) {
   const user = await getAuthedUser();
@@ -16,7 +17,19 @@ export async function GET(req: Request) {
   const from = fromParam ? new Date(fromParam) : startOfMonth(now);
   const to = toParam ? new Date(toParam) : endOfMonth(now);
 
-  const [txs, accounts, debts, dependents, fixedIncomes, fixedExpenses, budgets, streak] = await Promise.all([
+  const [
+    txs,
+    accounts,
+    debts,
+    dependents,
+    fixedIncomes,
+    fixedExpenses,
+    investments,
+    physicalAssets,
+    budgets,
+    streak,
+    fxMatrix,
+  ] = await Promise.all([
     prisma.transaction.findMany({
       where: { userId: user.id, date: { gte: from, lte: to } },
       include: { category: true, account: true },
@@ -26,8 +39,14 @@ export async function GET(req: Request) {
     prisma.dependent.findMany({ where: { userId: user.id } }),
     prisma.fixedIncome.findMany({ where: { userId: user.id, isActive: true } }),
     prisma.fixedExpense.findMany({ where: { userId: user.id, isActive: true } }),
+    prisma.investment.findMany({ where: { userId: user.id } }),
+    prisma.asset.findMany({ where: { userId: user.id, isActive: true } }),
     prisma.budget.findMany({ where: { userId: user.id }, include: { category: true } }),
     computeHematStreak(user.id),
+    getFxMatrix().catch(() => ({
+      date: new Date().toISOString().slice(0, 10),
+      rates: { IDR: { IDR: 1 }, MYR: { MYR: 1 }, USD: { USD: 1 }, SGD: { SGD: 1 } } as Record<string, Record<string, number>>,
+    })),
   ]);
 
   const totals = {
@@ -37,25 +56,53 @@ export async function GET(req: Request) {
     expenseMYR: sumInBase(txs, "MYR", "expense"),
   };
 
-  // Net worth snapshot (from accounts) — converted to IDR & MYR via FX at today
-  let assetIDR = 0, assetMYR = 0, debtIDR = 0, debtMYR = 0;
+  // Net worth — converted to ALL 4 currencies using today's FX matrix.
+  // We bucket each line item by native currency then sum-convert on demand.
+  const VIEW_CURRENCIES = ["IDR", "MYR", "USD", "SGD"] as const;
+  type CurrencyView = (typeof VIEW_CURRENCIES)[number];
+  const makeView = () =>
+    ({
+      IDR: 0,
+      MYR: 0,
+      USD: 0,
+      SGD: 0,
+    } as Record<CurrencyView, number>);
+  const assetView = makeView();
+  const debtView = makeView();
+  const investmentView = makeView();
+  const physicalView = makeView();
+
+  const addToView = (view: Record<CurrencyView, number>, amount: number, from: string) => {
+    for (const to of VIEW_CURRENCIES) {
+      view[to] += convertWithMatrix(amount, from, to, fxMatrix);
+    }
+  };
+
   for (const a of accounts) {
     const bal = toNumber(a.balance);
-    // Rough FX: assume 1 MYR = 3400 IDR, 1 IDR = 1/3400 MYR — we use live rate later
-    // For exactness the client can fetch /api/fx — here we use approximations.
-    if (a.currency === "IDR") {
-      if (a.type === "credit_card") debtIDR += bal;
-      else assetIDR += bal;
-    } else if (a.currency === "MYR") {
-      if (a.type === "credit_card") debtMYR += bal;
-      else assetMYR += bal;
-    }
+    if (a.type === "credit_card") addToView(debtView, bal, a.currency);
+    else addToView(assetView, bal, a.currency);
   }
   for (const d of debts) {
-    const rem = toNumber(d.remainingAmount);
-    if (d.currency === "IDR") debtIDR += rem;
-    else if (d.currency === "MYR") debtMYR += rem;
+    addToView(debtView, toNumber(d.remainingAmount), d.currency);
   }
+  for (const i of investments) {
+    addToView(investmentView, toNumber(i.currentValue), i.currency);
+  }
+  for (const p of physicalAssets) {
+    addToView(physicalView, toNumber(p.currentValue), p.currency);
+  }
+
+  const netWorthView = makeView();
+  for (const c of VIEW_CURRENCIES) {
+    netWorthView[c] = assetView[c] + investmentView[c] + physicalView[c] - debtView[c];
+  }
+
+  // Legacy IDR/MYR-only fields — keep for backward compat with existing UI
+  const assetIDR = assetView.IDR;
+  const assetMYR = assetView.MYR;
+  const debtIDR = debtView.IDR;
+  const debtMYR = debtView.MYR;
 
   // Period expense breakdown (variable only for "boros" focus)
   const byCategory: Record<string, { categoryId: string; name: string; emoji: string; color: string; nature: string; IDR: number; MYR: number }> = {};
@@ -127,32 +174,63 @@ export async function GET(req: Request) {
     }),
   ]);
 
+  // Boros expand to all 4 currencies via matrix conversion on IDR-base.
+  const sumBorosAllCurrencies = (bucket: typeof dayTxs) => {
+    const v = makeView();
+    for (const t of bucket) {
+      // We convert from IDR-base snapshot using today's matrix — consistent
+      // with how "today" views are presented.
+      addToView(v, toNumber(t.amountIDR), "IDR");
+    }
+    return v;
+  };
   const boros = {
-    today: { IDR: sumInBase(dayTxs, "IDR"), MYR: sumInBase(dayTxs, "MYR") },
-    week: { IDR: sumInBase(weekTxs, "IDR"), MYR: sumInBase(weekTxs, "MYR") },
-    month: { IDR: sumInBase(monthTxs, "IDR"), MYR: sumInBase(monthTxs, "MYR") },
+    today: sumBorosAllCurrencies(dayTxs),
+    week: sumBorosAllCurrencies(weekTxs),
+    month: sumBorosAllCurrencies(monthTxs),
   };
 
-  const fixedLoadIDR =
-    fixedExpenses.reduce((acc, f) => acc + (f.currency === "IDR" ? toNumber(f.amount) : 0), 0) +
-    dependents.reduce((acc, d) => acc + (d.currency === "IDR" ? toNumber(d.monthlyAmount) : 0), 0) +
-    debts.reduce((acc, d) => acc + (d.currency === "IDR" ? toNumber(d.monthlyPayment) : 0), 0);
-  const fixedLoadMYR =
-    fixedExpenses.reduce((acc, f) => acc + (f.currency === "MYR" ? toNumber(f.amount) : 0), 0) +
-    dependents.reduce((acc, d) => acc + (d.currency === "MYR" ? toNumber(d.monthlyAmount) : 0), 0) +
-    debts.reduce((acc, d) => acc + (d.currency === "MYR" ? toNumber(d.monthlyPayment) : 0), 0);
-  const fixedIncomeIDR = fixedIncomes.reduce((acc, f) => acc + (f.currency === "IDR" ? toNumber(f.amount) : 0), 0);
-  const fixedIncomeMYR = fixedIncomes.reduce((acc, f) => acc + (f.currency === "MYR" ? toNumber(f.amount) : 0), 0);
+  // Fixed load (expense + dependents + debts) and fixed income — per-currency
+  const fixedLoadView = makeView();
+  const fixedIncomeView = makeView();
+  for (const f of fixedExpenses) addToView(fixedLoadView, toNumber(f.amount), f.currency);
+  for (const d of dependents) addToView(fixedLoadView, toNumber(d.monthlyAmount), d.currency);
+  for (const d of debts) addToView(fixedLoadView, toNumber(d.monthlyPayment), d.currency);
+  for (const f of fixedIncomes) addToView(fixedIncomeView, toNumber(f.amount), f.currency);
+
+  // Period totals expanded to 4 currencies too
+  const periodView = {
+    income: sumBorosAllCurrencies(txs.filter((t) => t.type === "income")),
+    expense: sumBorosAllCurrencies(txs.filter((t) => t.type === "expense")),
+  };
 
   return NextResponse.json({
     range: { from: from.toISOString(), to: to.toISOString() },
     totals,
+    periodView,
     byCategory: Object.values(byCategory).sort((a, b) => b.IDR - a.IDR),
     series,
     boros,
     budgets,
+    // Legacy 2-currency fields (kept for older screens)
     netWorth: { assetIDR, assetMYR, debtIDR, debtMYR },
-    fixedLoad: { incomeIDR: fixedIncomeIDR, incomeMYR: fixedIncomeMYR, expenseIDR: fixedLoadIDR, expenseMYR: fixedLoadMYR },
+    fixedLoad: {
+      incomeIDR: fixedIncomeView.IDR,
+      incomeMYR: fixedIncomeView.MYR,
+      expenseIDR: fixedLoadView.IDR,
+      expenseMYR: fixedLoadView.MYR,
+    },
+    // New multi-currency view
+    wealth: {
+      asset: assetView,
+      debt: debtView,
+      investment: investmentView,
+      physical: physicalView,
+      netWorth: netWorthView,
+      fixedIncome: fixedIncomeView,
+      fixedLoad: fixedLoadView,
+    },
+    fx: fxMatrix,
     streak,
     meta: {
       accountCount: accounts.length,

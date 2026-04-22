@@ -121,8 +121,8 @@ export default function DukunPage() {
 
       {/* Snapshot strip */}
       {snapshot && (
-        <div className="card bg-gradient-to-br from-pink-50 to-orange-50 p-4">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-pink-700">
+        <div className="card bg-gradient-to-br from-emerald-50 to-amber-50 p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">
             {t("dukun.snapshotLabel")} ({primary})
           </div>
           <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
@@ -159,9 +159,9 @@ export default function DukunPage() {
               type="button"
               disabled={busy}
               onClick={() => ask(t(a.promptKey))}
-              className="flex items-center gap-2 rounded-2xl border border-pink-100 bg-white p-3 text-left text-xs font-medium text-slate-700 active:scale-[0.98] disabled:opacity-50"
+              className="flex items-center gap-2 rounded-2xl border border-emerald-100 bg-white p-3 text-left text-xs font-medium text-slate-700 active:scale-[0.98] disabled:opacity-50"
             >
-              <Icon className="h-4 w-4 text-pink-600 shrink-0" />
+              <Icon className="h-4 w-4 text-emerald-600 shrink-0" />
               <span>{t(a.labelKey)}</span>
             </button>
           );
@@ -174,7 +174,7 @@ export default function DukunPage() {
           <MessageBubble key={m.id} msg={m} />
         ))}
         {busy && (
-          <div className="flex items-center gap-2 rounded-2xl bg-pink-50/60 px-3 py-2 text-sm text-pink-700">
+          <div className="flex items-center gap-2 rounded-2xl bg-emerald-50/60 px-3 py-2 text-sm text-emerald-700">
             <Loader2 className="h-4 w-4 animate-spin" /> {t("dukun.thinking")}
           </div>
         )}
@@ -216,7 +216,7 @@ export default function DukunPage() {
 }
 
 function Stat({ label, value, tone }: { label: string; value: string; tone: "emerald" | "rose" | "brand" }) {
-  const color = tone === "emerald" ? "text-emerald-600" : tone === "rose" ? "text-rose-600" : "text-pink-600";
+  const color = tone === "emerald" ? "text-emerald-600" : tone === "rose" ? "text-rose-600" : "text-emerald-600";
   return (
     <div>
       <div className="text-[10px] uppercase tracking-wider text-slate-500">{label}</div>
@@ -229,7 +229,7 @@ function MessageBubble({ msg }: { msg: Msg }) {
   if (msg.role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-gradient-to-br from-pink-500 to-orange-500 px-3 py-2 text-sm text-white shadow-sm">
+        <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-gradient-to-br from-emerald-500 to-orange-500 px-3 py-2 text-sm text-white shadow-sm">
           {msg.content}
         </div>
       </div>
@@ -237,8 +237,8 @@ function MessageBubble({ msg }: { msg: Msg }) {
   }
   return (
     <div className="flex gap-2">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-pink-100 text-sm">🧙</div>
-      <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-pink-50/60 px-3 py-2 text-sm leading-relaxed text-slate-800">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm">🧙</div>
+      <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-emerald-50/60 px-3 py-2 text-sm leading-relaxed text-slate-800">
         <MiniMarkdown text={msg.content} />
       </div>
     </div>
@@ -255,7 +255,7 @@ function MiniMarkdown({ text }: { text: string }) {
         if (bulletMatch) {
           return (
             <div key={i} className="flex gap-1.5 pl-2">
-              <span className="text-pink-500">•</span>
+              <span className="text-emerald-500">•</span>
               <span>{renderInline(bulletMatch[2])}</span>
             </div>
           );
@@ -264,7 +264,7 @@ function MiniMarkdown({ text }: { text: string }) {
         if (numMatch) {
           return (
             <div key={i} className="flex gap-1.5 pl-2">
-              <span className="text-pink-500 font-semibold">{numMatch[2]}.</span>
+              <span className="text-emerald-500 font-semibold">{numMatch[2]}.</span>
               <span>{renderInline(numMatch[3])}</span>
             </div>
           );
@@ -293,7 +293,7 @@ function renderInline(text: string): React.ReactNode {
   while ((match = regex.exec(text)) !== null) {
     if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
     if (match[1]) parts.push(<strong key={key++} className="font-semibold">{match[1]}</strong>);
-    else if (match[2]) parts.push(<code key={key++} className="rounded bg-pink-100 px-1 text-[12px]">{match[2]}</code>);
+    else if (match[2]) parts.push(<code key={key++} className="rounded bg-emerald-100 px-1 text-[12px]">{match[2]}</code>);
     lastIndex = match.index + match[0].length;
   }
   if (lastIndex < text.length) parts.push(text.slice(lastIndex));

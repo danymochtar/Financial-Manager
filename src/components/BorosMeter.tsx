@@ -11,7 +11,7 @@ export function BorosMeter({
 }: {
   spent: number;
   limit: number;
-  currency: "IDR" | "MYR";
+  currency: "IDR" | "MYR" | "USD" | "SGD";
   label: string;
 }) {
   const { t } = useT();
@@ -37,11 +37,11 @@ export function BorosMeter({
 
   return (
     <div className="card relative overflow-hidden p-5">
-      <div className="absolute inset-0 -z-0 bg-gradient-to-br from-pink-50 to-orange-50" />
+      <div className="absolute inset-0 -z-0 bg-gradient-to-br from-emerald-50 to-amber-50" />
       <div className="relative flex items-center gap-5">
         <div className="relative h-44 w-44 shrink-0">
           <svg viewBox="0 0 200 200" className="h-full w-full -rotate-90">
-            <circle cx="100" cy="100" r={radius} stroke="#fde8e3" strokeWidth="16" fill="none" />
+            <circle cx="100" cy="100" r={radius} stroke="#d1fae5" strokeWidth="16" fill="none" />
             <circle
               cx="100"
               cy="100"
@@ -66,7 +66,7 @@ export function BorosMeter({
           </div>
         </div>
         <div className="flex-1">
-          <div className="text-xs font-semibold uppercase tracking-wider text-pink-600">
+          <div className="text-xs font-semibold uppercase tracking-wider text-emerald-600">
             {t("dash.borosTitle")}
           </div>
           <div className="mt-1 text-lg font-bold leading-tight">{tagline}</div>

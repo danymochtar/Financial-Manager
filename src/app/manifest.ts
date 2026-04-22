@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Catet keborosan, pantau dompet, jadi lebih hemat.",
     start_url: "/",
     display: "standalone",
-    background_color: "#fffaf5",
-    theme_color: "#ec4899",
+    background_color: "#f7fdf9",
+    theme_color: "#059669",
     orientation: "portrait",
     categories: ["finance", "lifestyle", "productivity"],
     icons: [
