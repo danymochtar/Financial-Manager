@@ -34,6 +34,8 @@ model User {
   fixedExpenses  FixedExpense[]
   investments    Investment[]
   goals          Goal[]
+  assets         Asset[]
+  jobRecords     JobRecord[]
 }
 
 // Rekening, e-money, cash, kartu kredit.
@@ -297,6 +299,53 @@ model Goal {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isActive])
+}
+
+// Aset fisik: properti, kendaraan, gadget, collectibles.
+// Value di-revalue bulanan via Claude (AI estimate) atau manual.
+model Asset {
+  id              String   @id @default(cuid())
+  userId          String
+  name            String // "Brio 2020 Silver", "Apartment Taman Anggrek"
+  type            String // "property" | "vehicle" | "electronics" | "collectible" | "other"
+  subtype         String? // "house"|"apartment"|"land"|"car"|"motorcycle"|"phone"|"laptop"|"watch"|...
+  emoji           String   @default("🏠")
+  purchasePrice   Decimal
+  purchaseDate    DateTime
+  currentValue    Decimal
+  currency        String
+  lastValuationAt DateTime @default(now())
+  valuationMethod String   @default("manual") // "manual" | "ai_estimate"
+  valuationNote   String? // reasoning dari AI
+  details         String? // JSON: {brand, model, year, mileage, size, location, ...}
+  note            String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+}
+
+// Riwayat karir — buat narasi "udah kerja berapa tahun, total earning".
+model JobRecord {
+  id            String    @id @default(cuid())
+  userId        String
+  employer      String
+  role          String?
+  startDate     DateTime
+  endDate       DateTime? // null = current
+  monthlySalary Decimal
+  currency      String
+  country       String    @default("ID")
+  note          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model FxRate {

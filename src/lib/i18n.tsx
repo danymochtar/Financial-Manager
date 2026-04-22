@@ -457,6 +457,76 @@ export const TR: Record<string, { id: string; en: string }> = {
   "curr.MYR": { id: "MYR", en: "MYR" },
   "curr.USD": { id: "USD", en: "USD" },
   "curr.SGD": { id: "SGD", en: "SGD" },
+
+  // ===== Wajib new tabs =====
+  "wajib.tab.asset": { id: "Aset 🏠", en: "Assets 🏠" },
+  "wajib.tab.career": { id: "Karir 💼", en: "Career 💼" },
+  "wajib.addAsset": { id: "Tambah Aset", en: "Add Asset" },
+  "wajib.addJob": { id: "Tambah Pekerjaan", en: "Add Job" },
+
+  // ===== Asset =====
+  "asset.empty": { id: "aset fisik (rumah, mobil, gadget)", en: "physical assets (home, car, gadgets)" },
+  "asset.namePlaceholder": { id: "Nama aset", en: "Asset name" },
+  "asset.detailsPlaceholder": {
+    id: "Detail (brand, tahun, ukuran, lokasi, dll) — makin detail makin akurat AI nebak harganya",
+    en: "Details (brand, year, size, location) — the more detail, the more accurate the AI estimate",
+  },
+  "asset.purchaseDate": { id: "Tanggal beli", en: "Purchase date" },
+  "asset.purchasePrice": { id: "Harga beli", en: "Purchase price" },
+  "asset.currentEstimate": { id: "Nilai sekarang (perkiraan)", en: "Current value (estimate)" },
+  "asset.currentHint": {
+    id: "Isi kira-kira aja, nanti bisa di-revalue sama AI",
+    en: "Rough guess — you can re-estimate with AI later",
+  },
+  "asset.purchase": { id: "Beli", en: "Purchase" },
+  "asset.current": { id: "Skrg", en: "Now" },
+  "asset.lastValued": { id: "Valued", en: "Valued" },
+  "asset.revalue": { id: "Revalue via AI", en: "Revalue via AI" },
+  "asset.revaluing": { id: "Nebak...", en: "Estimating..." },
+  "asset.revalued": { id: "Nilai ter-update ✨", en: "Value updated ✨" },
+  "asset.revalueCooldown": {
+    id: "Baru direvalue. Coba lagi dalam {d} hari ya.",
+    en: "Just revalued recently. Try again in {d} days.",
+  },
+
+  // ===== Career =====
+  "career.empty": {
+    id: "Belum ada riwayat karir. Tambahin biar Dukun bisa analisa \"duit lo kemana?\"",
+    en: "No career history yet. Add one so the Oracle can analyze \"where did my money go?\"",
+  },
+  "career.employer": { id: "Perusahaan / Client", en: "Employer / Client" },
+  "career.role": { id: "Role (opsional)", en: "Role (optional)" },
+  "career.start": { id: "Mulai", en: "Start" },
+  "career.end": { id: "Selesai", en: "End" },
+  "career.isCurrent": { id: "Sekarang masih kerja di sini", en: "Currently working here" },
+  "career.current": { id: "sekarang", en: "present" },
+  "career.monthlySalary": { id: "Gaji bulanan (take home)", en: "Monthly salary (take home)" },
+
+  // ===== Dukun additions =====
+  "dukun.netWorth": { id: "Net Worth", en: "Net Worth" },
+  "dukun.physical": { id: "Aset Fisik", en: "Physical Assets" },
+  "dukun.efficiency": { id: "Efisiensi tabungan", en: "Savings efficiency" },
+  "dukun.qa.moneyTrail": { id: "Duit Lo Kemana?", en: "Where Did My Money Go?" },
+  "dukun.prompt.moneyTrail": {
+    id: "Analisa 'duit gw kemana?' — bandingin total earnings gw sepanjang karir (dari careerHistory) vs current net worth gw. Hitung savings efficiency %. Kasih narasi jujur: udah kerja X tahun, total earn Y, tapi net worth gw cuma Z% dari itu — tebak kemungkinan alasan dari data yg ada (lifestyle inflation, aset yg depresiasi, investasi kurang baik, tanggungan, dll). Jangan judging, banyak faktor valid. Akhiri dengan 3 step konkret buat naikin savings efficiency.",
+    en: "Analyze 'where did my money go?' — compare my total career earnings (from careerHistory) vs my current net worth. Compute savings efficiency %. Give an honest narrative: worked X years, earned Y total, net worth is only Z% of that — guess likely causes from the data (lifestyle inflation, depreciating assets, poor investments, dependents). No judgment; many causes are valid. End with 3 concrete steps to raise savings efficiency.",
+  },
+
+  // ===== Onboarding (assets + career) =====
+  "onb.stepAssets": { id: "Aset Fisik", en: "Physical Assets" },
+  "onb.stepCareer": { id: "Riwayat Karir", en: "Career History" },
+  "onb.assets.subtitle": {
+    id: "Punya rumah, apartment, mobil, motor, atau gadget gede? Input biar net worth-nya akurat. Boleh skip.",
+    en: "Got a home, car, motorcycle, or big gadget? Add them for accurate net worth. Skippable.",
+  },
+  "onb.career.subtitle": {
+    id: "Kapan lo pertama kerja, gaji pertama berapa? Dukun pake ini buat analisa \"duit lo kemana\" vs total earning lo.",
+    en: "When did you first start working? First salary? The Oracle uses this to analyze \"where did my money go?\" against total lifetime earnings.",
+  },
+  "onb.welcomeAssets": { id: "🏠 Aset fisik (rumah, mobil, gadget)", en: "🏠 Physical assets (home, car, gadgets)" },
+  "onb.welcomeCareer": { id: "💼 Riwayat kerja (gaji pertama → sekarang)", en: "💼 Career history (first → current salary)" },
+  "onb.done.assets": { id: "aset fisik", en: "physical assets" },
+  "onb.done.jobs": { id: "job", en: "jobs" },
 };
 
 type Ctx = {

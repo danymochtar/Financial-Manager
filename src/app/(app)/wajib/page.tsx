@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, Plus, X } from "lucide-react";
+import { Trash2, Plus, X, Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { formatShort } from "@/lib/currency";
 import { MoneyInput, CurrencySelect } from "@/components/MoneyInput";
@@ -12,6 +12,7 @@ import {
   FIXED_EXPENSE_TEMPLATES,
   INVESTMENT_TEMPLATES,
   GOAL_TEMPLATES,
+  ASSET_TEMPLATES,
 } from "@/lib/categories";
 
 type FixedIncome = {
@@ -67,9 +68,36 @@ type Goal = {
   priority: number;
   note: string | null;
 };
+type Asset = {
+  id: string;
+  name: string;
+  type: string;
+  subtype: string | null;
+  emoji: string;
+  purchasePrice: string;
+  purchaseDate: string;
+  currentValue: string;
+  currency: string;
+  details: string | null;
+  note: string | null;
+  lastValuationAt: string;
+  valuationMethod: string;
+  valuationNote: string | null;
+};
+type Job = {
+  id: string;
+  employer: string;
+  role: string | null;
+  startDate: string;
+  endDate: string | null;
+  monthlySalary: string;
+  currency: string;
+  country: string;
+  note: string | null;
+};
 type Category = { id: string; name: string; kind: string; emoji: string; nature: string };
 
-type Tab = "expense" | "income" | "debt" | "dependent" | "investment" | "goal";
+type Tab = "expense" | "income" | "debt" | "dependent" | "investment" | "goal" | "asset" | "career";
 
 export default function WajibPage() {
   const { t } = useT();
@@ -81,17 +109,21 @@ export default function WajibPage() {
   const [dependents, setDependents] = useState<Dependent[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [showAdd, setShowAdd] = useState(false);
 
   async function load() {
-    const [i, e, d, p, inv, g, c] = await Promise.all([
+    const [i, e, d, p, inv, g, a, j, c] = await Promise.all([
       fetch("/api/fixed-incomes").then((r) => r.json()),
       fetch("/api/fixed-expenses").then((r) => r.json()),
       fetch("/api/debts").then((r) => r.json()),
       fetch("/api/dependents").then((r) => r.json()),
       fetch("/api/investments").then((r) => r.json()),
       fetch("/api/goals").then((r) => r.json()),
+      fetch("/api/assets").then((r) => r.json()),
+      fetch("/api/career").then((r) => r.json()),
       fetch("/api/categories").then((r) => r.json()),
     ]);
     setIncomes(i.fixedIncomes ?? []);
@@ -100,6 +132,8 @@ export default function WajibPage() {
     setDependents(p.dependents ?? []);
     setInvestments(inv.investments ?? []);
     setGoals(g.goals ?? []);
+    setAssets(a.assets ?? []);
+    setJobs(j.jobs ?? []);
     setCategories(c.categories ?? []);
   }
   useEffect(() => {
@@ -115,6 +149,8 @@ export default function WajibPage() {
       dependent: "dependents",
       investment: "investments",
       goal: "goals",
+      asset: "assets",
+      career: "career",
     };
     await fetch(`/api/${map[kind]}/${id}`, { method: "DELETE" });
     toast({ kind: "success", message: t("toast.deleted") });
@@ -124,6 +160,8 @@ export default function WajibPage() {
   const TABS: Array<{ k: Tab; l: string }> = [
     { k: "expense", l: t("wajib.tab.expense") },
     { k: "income", l: t("wajib.tab.income") },
+    { k: "asset", l: t("wajib.tab.asset") },
+    { k: "career", l: t("wajib.tab.career") },
     { k: "debt", l: t("wajib.tab.debt") },
     { k: "dependent", l: t("wajib.tab.dependent") },
     { k: "investment", l: t("wajib.tab.investment") },
@@ -223,6 +261,12 @@ export default function WajibPage() {
           })}
         />
       )}
+      {tab === "asset" && (
+        <AssetList assets={assets} onChanged={load} onDelete={(id) => remove("asset", id)} />
+      )}
+      {tab === "career" && (
+        <CareerList jobs={jobs} onDelete={(id) => remove("career", id)} />
+      )}
       {tab === "goal" && (
         <ItemList
           items={goals}
@@ -313,6 +357,189 @@ function ItemList<T extends { id: string }>({
   );
 }
 
+function AssetList({
+  assets,
+  onChanged,
+  onDelete,
+}: {
+  assets: Asset[];
+  onChanged: () => void;
+  onDelete: (id: string) => void;
+}) {
+  const { t, locale } = useT();
+  const toast = useToast();
+  const [revaluing, setRevaluing] = useState<string | null>(null);
+
+  async function revalue(asset: Asset, force = false) {
+    setRevaluing(asset.id);
+    try {
+      const res = await fetch(`/api/assets/${asset.id}/revalue`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ force, locale }),
+      });
+      const data = await res.json();
+      if (res.status === 429) {
+        toast({
+          kind: "info",
+          message: t("asset.revalueCooldown").replace("{d}", String(data.daysLeft ?? 0)),
+        });
+        return;
+      }
+      if (!res.ok) {
+        toast({ kind: "error", message: data?.error ?? t("toast.failed") });
+        return;
+      }
+      toast({ kind: "success", message: t("asset.revalued") });
+      onChanged();
+    } finally {
+      setRevaluing(null);
+    }
+  }
+
+  if (assets.length === 0) {
+    return <div className="card p-4 text-sm text-slate-500">{t("wajib.item.empty")} — {t("asset.empty")}</div>;
+  }
+  return (
+    <div className="space-y-2">
+      {assets.map((a) => {
+        const purchase = Number(a.purchasePrice);
+        const current = Number(a.currentValue);
+        const delta = current - purchase;
+        const pct = purchase > 0 ? Math.round((delta / purchase) * 100) : 0;
+        const deltaColor = delta >= 0 ? "text-emerald-600" : "text-rose-600";
+        const staleDays = Math.floor(
+          (Date.now() - new Date(a.lastValuationAt).getTime()) / (24 * 3600 * 1000)
+        );
+        return (
+          <div key={a.id} className="card p-3 space-y-2">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{a.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <div className="truncate text-sm font-semibold">{a.name}</div>
+                <div className="text-[11px] text-slate-500">
+                  {a.details ?? a.subtype ?? a.type}
+                </div>
+              </div>
+              <button
+                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100"
+                onClick={() => onDelete(a.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-xl bg-slate-50 p-2">
+                <div className="text-[10px] uppercase text-slate-500">{t("asset.purchase")}</div>
+                <div className="font-semibold">{formatShort(purchase, a.currency)}</div>
+                <div className="text-[10px] text-slate-500">
+                  {new Date(a.purchaseDate).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", {
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </div>
+              </div>
+              <div className="rounded-xl bg-pink-50 p-2">
+                <div className="text-[10px] uppercase text-pink-700">{t("asset.current")}</div>
+                <div className="font-semibold">{formatShort(current, a.currency)}</div>
+                <div className={`text-[10px] ${deltaColor}`}>
+                  {delta >= 0 ? "▲" : "▼"} {Math.abs(pct)}%
+                </div>
+              </div>
+            </div>
+            {a.valuationNote && (
+              <div className="rounded-lg bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
+                ✨ {a.valuationNote}
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-slate-500">
+                {t("asset.lastValued")} {staleDays}d · {a.valuationMethod === "ai_estimate" ? "AI" : "manual"}
+              </span>
+              <button
+                className="btn-outline text-[11px] py-1.5 px-3"
+                disabled={revaluing === a.id}
+                onClick={() => revalue(a, false)}
+              >
+                {revaluing === a.id ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" /> {t("asset.revaluing")}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3 w-3" /> {t("asset.revalue")}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CareerList({
+  jobs,
+  onDelete,
+}: {
+  jobs: Job[];
+  onDelete: (id: string) => void;
+}) {
+  const { t, locale } = useT();
+  if (jobs.length === 0) {
+    return <div className="card p-4 text-sm text-slate-500">{t("career.empty")}</div>;
+  }
+  return (
+    <div className="space-y-2">
+      {jobs.map((j) => {
+        const months = Math.round(
+          ((j.endDate ? new Date(j.endDate) : new Date()).getTime() -
+            new Date(j.startDate).getTime()) /
+            (30.44 * 24 * 3600 * 1000)
+        );
+        const years = (months / 12).toFixed(1);
+        return (
+          <div key={j.id} className="card p-3">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">💼</span>
+              <div className="flex-1 min-w-0">
+                <div className="truncate text-sm font-semibold">
+                  {j.employer}
+                  {j.role && <span className="ml-1 text-slate-500 font-normal">· {j.role}</span>}
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  {new Date(j.startDate).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", {
+                    month: "short",
+                    year: "numeric",
+                  })}
+                  {" → "}
+                  {j.endDate
+                    ? new Date(j.endDate).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", {
+                        month: "short",
+                        year: "numeric",
+                      })
+                    : t("career.current")}{" "}
+                  · {years}y
+                </div>
+              </div>
+              <div className="text-sm font-bold text-emerald-600">
+                {formatShort(Number(j.monthlySalary), j.currency)}/mo
+              </div>
+              <button
+                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100"
+                onClick={() => onDelete(j.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function AddSheet({
   tab,
   categories,
@@ -330,6 +557,10 @@ function AddSheet({
       ? t("wajib.addInvestment")
       : tab === "goal"
       ? t("wajib.addGoal")
+      : tab === "asset"
+      ? t("wajib.addAsset")
+      : tab === "career"
+      ? t("wajib.addJob")
       : t("wajib.addTitle");
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4" onClick={onClose}>
@@ -349,6 +580,8 @@ function AddSheet({
         {tab === "dependent" && <DependentForm onAdded={onAdded} />}
         {tab === "investment" && <InvestmentForm onAdded={onAdded} />}
         {tab === "goal" && <GoalForm onAdded={onAdded} />}
+        {tab === "asset" && <AssetForm onAdded={onAdded} />}
+        {tab === "career" && <JobForm onAdded={onAdded} />}
       </div>
     </div>
   );
@@ -843,6 +1076,210 @@ function GoalForm({ onAdded }: { onAdded: () => void }) {
       </div>
       <button type="submit" className="btn-primary w-full">
         {t("wajib.form.saveGoal")}
+      </button>
+    </form>
+  );
+}
+
+function AssetForm({ onAdded }: { onAdded: () => void }) {
+  const { t } = useT();
+  const toast = useToast();
+  const [tpl, setTpl] = useState<(typeof ASSET_TEMPLATES)[number] | null>(null);
+  const [name, setName] = useState("");
+  const [type, setType] = useState<(typeof ASSET_TEMPLATES)[number]["type"]>("property");
+  const [subtype, setSubtype] = useState<string | null>(null);
+  const [emoji, setEmoji] = useState("🏠");
+  const [purchasePrice, setPurchasePrice] = useState(0);
+  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().slice(0, 10));
+  const [currentValue, setCurrentValue] = useState(0);
+  const [currency, setCurrency] = useState<"IDR" | "MYR" | "USD" | "SGD">("IDR");
+  const [details, setDetails] = useState("");
+
+  function useTpl(t0: (typeof ASSET_TEMPLATES)[number]) {
+    setTpl(t0);
+    setType(t0.type);
+    setSubtype(t0.subtype);
+    setEmoji(t0.emoji);
+    if (!name) setName(t0.name);
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name || !purchasePrice) return;
+    const res = await fetch("/api/assets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        type,
+        subtype,
+        emoji,
+        purchasePrice,
+        purchaseDate: new Date(purchaseDate).toISOString(),
+        currentValue: currentValue || purchasePrice,
+        currency,
+        details: details || null,
+      }),
+    });
+    if (!res.ok) {
+      toast({ kind: "error", message: t("toast.failed") });
+      return;
+    }
+    toast({ kind: "success", message: t("toast.saved") });
+    onAdded();
+  }
+
+  return (
+    <form className="space-y-2" onSubmit={submit}>
+      <div>
+        <div className="label mb-1">{t("wajib.form.template")}</div>
+        <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+          {ASSET_TEMPLATES.map((a) => (
+            <button
+              key={`${a.type}-${a.subtype}`}
+              type="button"
+              onClick={() => useTpl(a)}
+              className="chip"
+            >
+              {a.emoji} {a.name}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
+        <input
+          className="input text-sm w-12 text-center"
+          value={emoji}
+          onChange={(e) => setEmoji(e.target.value)}
+          maxLength={4}
+        />
+        <input
+          className="input text-sm"
+          placeholder={t("asset.namePlaceholder")}
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+      <textarea
+        className="input text-sm min-h-[56px]"
+        placeholder={tpl?.detailsHint || t("asset.detailsPlaceholder")}
+        value={details}
+        onChange={(e) => setDetails(e.target.value)}
+      />
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="label">{t("asset.purchaseDate")}</label>
+          <input
+            type="date"
+            className="input text-sm"
+            value={purchaseDate}
+            onChange={(e) => setPurchaseDate(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="label">{t("tx.currency")}</label>
+          <CurrencySelect value={currency} onChange={setCurrency} />
+        </div>
+      </div>
+      <div>
+        <label className="label">{t("asset.purchasePrice")}</label>
+        <MoneyInput value={purchasePrice} onChange={setPurchasePrice} currency={currency} />
+      </div>
+      <div>
+        <label className="label">{t("asset.currentEstimate")}</label>
+        <MoneyInput value={currentValue} onChange={setCurrentValue} currency={currency} />
+        <p className="mt-1 text-[10px] text-slate-500">{t("asset.currentHint")}</p>
+      </div>
+      <button type="submit" className="btn-primary w-full">
+        {t("save")}
+      </button>
+    </form>
+  );
+}
+
+function JobForm({ onAdded }: { onAdded: () => void }) {
+  const { t } = useT();
+  const toast = useToast();
+  const [employer, setEmployer] = useState("");
+  const [role, setRole] = useState("");
+  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState<string>("");
+  const [current, setCurrent] = useState(true);
+  const [monthlySalary, setMonthlySalary] = useState(0);
+  const [currency, setCurrency] = useState<"IDR" | "MYR" | "USD" | "SGD">("IDR");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!employer || !monthlySalary) return;
+    const res = await fetch("/api/career", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        employer,
+        role: role || null,
+        startDate: new Date(startDate).toISOString(),
+        endDate: current ? null : endDate ? new Date(endDate).toISOString() : null,
+        monthlySalary,
+        currency,
+        country: currency === "MYR" ? "MY" : "ID",
+      }),
+    });
+    if (!res.ok) {
+      toast({ kind: "error", message: t("toast.failed") });
+      return;
+    }
+    toast({ kind: "success", message: t("toast.saved") });
+    onAdded();
+  }
+
+  return (
+    <form className="space-y-2" onSubmit={submit}>
+      <input
+        className="input text-sm"
+        placeholder={t("career.employer")}
+        required
+        value={employer}
+        onChange={(e) => setEmployer(e.target.value)}
+      />
+      <input
+        className="input text-sm"
+        placeholder={t("career.role")}
+        value={role}
+        onChange={(e) => setRole(e.target.value)}
+      />
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="label">{t("career.start")}</label>
+          <input
+            type="date"
+            className="input text-sm"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="label">{t("career.end")}</label>
+          <input
+            type="date"
+            className="input text-sm disabled:opacity-40"
+            disabled={current}
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
+      </div>
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={current} onChange={(e) => setCurrent(e.target.checked)} />
+        <span>{t("career.isCurrent")}</span>
+      </label>
+      <div>
+        <label className="label">{t("career.monthlySalary")}</label>
+        <MoneyInput value={monthlySalary} onChange={setMonthlySalary} currency={currency} />
+      </div>
+      <CurrencySelect value={currency} onChange={setCurrency} />
+      <button type="submit" className="btn-primary w-full">
+        {t("save")}
       </button>
     </form>
   );

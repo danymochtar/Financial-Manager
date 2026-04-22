@@ -184,6 +184,37 @@ export const INVESTMENT_TEMPLATES: Array<{
   { type: "other", name: "Aset Lainnya", emoji: "💎", color: "#ec4899" },
 ];
 
+// Template aset fisik (rumah, mobil, gadget, dll)
+export const ASSET_TEMPLATES: Array<{
+  type: "property" | "vehicle" | "electronics" | "collectible" | "other";
+  subtype: string;
+  name: string;
+  emoji: string;
+  detailsHint: string; // contoh detail yang bagus diisi
+}> = [
+  // Property
+  { type: "property", subtype: "house", name: "Rumah", emoji: "🏠", detailsHint: "misal: LT 120m², LB 80m², Bintaro" },
+  { type: "property", subtype: "apartment", name: "Apartment", emoji: "🏢", detailsHint: "misal: Studio 30m², Taman Anggrek, lantai 15" },
+  { type: "property", subtype: "land", name: "Tanah", emoji: "🌳", detailsHint: "misal: 500m², Depok" },
+  { type: "property", subtype: "kos", name: "Kost / Rumah Kontrakan", emoji: "🏡", detailsHint: "misal: 10 kamar, Jogja" },
+  // Vehicle
+  { type: "vehicle", subtype: "car", name: "Mobil", emoji: "🚗", detailsHint: "misal: Honda Brio 2020 AT, 45rb km, silver" },
+  { type: "vehicle", subtype: "motorcycle", name: "Motor", emoji: "🏍️", detailsHint: "misal: Yamaha NMax 2022, 12rb km" },
+  { type: "vehicle", subtype: "bicycle", name: "Sepeda", emoji: "🚲", detailsHint: "misal: Polygon Siskiu D7 2023" },
+  // Electronics
+  { type: "electronics", subtype: "phone", name: "HP / iPhone", emoji: "📱", detailsHint: "misal: iPhone 15 Pro 256GB Natural Titanium" },
+  { type: "electronics", subtype: "laptop", name: "Laptop / MacBook", emoji: "💻", detailsHint: "misal: MacBook Air M2 2022 16GB/512GB" },
+  { type: "electronics", subtype: "camera", name: "Kamera", emoji: "📷", detailsHint: "misal: Sony A7 IV" },
+  { type: "electronics", subtype: "gadget", name: "Gadget Lain", emoji: "🎮", detailsHint: "misal: PS5, iPad Air, Apple Watch" },
+  // Collectible
+  { type: "collectible", subtype: "watch", name: "Jam Tangan", emoji: "⌚", detailsHint: "misal: Seiko SKX007, kondisi mint" },
+  { type: "collectible", subtype: "art", name: "Art / Koleksi", emoji: "🖼️", detailsHint: "misal: Lukisan, action figure limited edition" },
+  { type: "collectible", subtype: "shoes", name: "Sneakers", emoji: "👟", detailsHint: "misal: Jordan 1 Chicago 2023" },
+  // Other
+  { type: "other", subtype: "furniture", name: "Furniture / Home Goods", emoji: "🛋️", detailsHint: "" },
+  { type: "other", subtype: "other", name: "Aset Lainnya", emoji: "💎", detailsHint: "" },
+];
+
 // Template goal hidup
 export const GOAL_TEMPLATES: Array<{
   name: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, Send, Loader2, Target, ShieldCheck, PiggyBank, TrendingDown, RefreshCw } from "lucide-react";
+import { Sparkles, Send, Loader2, Target, ShieldCheck, PiggyBank, TrendingDown, RefreshCw, Compass } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { formatShort } from "@/lib/currency";
 import { useT } from "@/lib/i18n";
@@ -16,6 +16,10 @@ type Snapshot = {
     totalDebtMYR: number;
     totalInvestmentIDR: number;
     totalInvestmentMYR: number;
+    totalPhysicalAssetIDR: number;
+    totalPhysicalAssetMYR: number;
+    totalNetWorthIDR: number;
+    totalNetWorthMYR: number;
     monthlyIncomeIDR: number;
     monthlyIncomeMYR: number;
     monthlyFixedExpenseIDR: number;
@@ -26,6 +30,10 @@ type Snapshot = {
     monthlyDependentMYR: number;
     freeCashFlowIDR: number;
     freeCashFlowMYR: number;
+    yearsWorked: number;
+    savingsEfficiencyPct: number | null;
+    moneyGapIDR: number;
+    moneyGapMYR: number;
   };
   goals: Array<{ name: string; emoji: string; targetAmount: number; currency: string; currentSaved: number; targetDate: string | null }>;
 };
@@ -34,6 +42,7 @@ type Msg = { id: string; role: "user" | "assistant"; content: string };
 
 const QUICK_ACTION_KEYS = [
   { key: "analyze", labelKey: "dukun.qa.analyze", promptKey: "dukun.prompt.analyze", icon: Sparkles },
+  { key: "money_trail", labelKey: "dukun.qa.moneyTrail", promptKey: "dukun.prompt.moneyTrail", icon: Compass },
   { key: "safety_net", labelKey: "dukun.qa.safety", promptKey: "dukun.prompt.safety", icon: ShieldCheck },
   { key: "savings_plan", labelKey: "dukun.qa.savings", promptKey: "dukun.prompt.savings", icon: Target },
   { key: "reduce_boros", labelKey: "dukun.qa.reduce", promptKey: "dukun.prompt.reduce", icon: TrendingDown },
@@ -117,11 +126,19 @@ export default function DukunPage() {
             {t("dukun.snapshotLabel")} ({primary})
           </div>
           <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-            <Stat label={t("dash.asset")} value={formatShort(isMYR ? snapshot.derived.totalAssetMYR : snapshot.derived.totalAssetIDR, primary)} tone="emerald" />
-            <Stat label={t("dukun.investment")} value={formatShort(isMYR ? snapshot.derived.totalInvestmentMYR : snapshot.derived.totalInvestmentIDR, primary)} tone="brand" />
+            <Stat label={t("dukun.netWorth")} value={formatShort(isMYR ? snapshot.derived.totalNetWorthMYR : snapshot.derived.totalNetWorthIDR, primary)} tone={(isMYR ? snapshot.derived.totalNetWorthMYR : snapshot.derived.totalNetWorthIDR) >= 0 ? "emerald" : "rose"} />
+            <Stat label={t("dukun.physical")} value={formatShort(isMYR ? snapshot.derived.totalPhysicalAssetMYR : snapshot.derived.totalPhysicalAssetIDR, primary)} tone="brand" />
             <Stat label={t("dash.debt")} value={formatShort(isMYR ? snapshot.derived.totalDebtMYR : snapshot.derived.totalDebtIDR, primary)} tone="rose" />
-            <Stat label={t("dukun.freeCash")} value={formatShort(isMYR ? snapshot.derived.freeCashFlowMYR : snapshot.derived.freeCashFlowIDR, primary)} tone={isMYR ? (snapshot.derived.freeCashFlowMYR >= 0 ? "emerald" : "rose") : (snapshot.derived.freeCashFlowIDR >= 0 ? "emerald" : "rose")} />
+            <Stat label={t("dukun.freeCash")} value={formatShort(isMYR ? snapshot.derived.freeCashFlowMYR : snapshot.derived.freeCashFlowIDR, primary)} tone={(isMYR ? snapshot.derived.freeCashFlowMYR : snapshot.derived.freeCashFlowIDR) >= 0 ? "emerald" : "rose"} />
           </div>
+          {snapshot.derived.yearsWorked > 0 && (
+            <div className="mt-3 flex items-center justify-between rounded-xl bg-white/60 px-3 py-2 text-[11px]">
+              <span>
+                💼 {snapshot.derived.yearsWorked}y kerja · {t("dukun.efficiency")}:{" "}
+                <strong>{snapshot.derived.savingsEfficiencyPct ?? "—"}%</strong>
+              </span>
+            </div>
+          )}
           {snapshot.goals.length > 0 && (
             <div className="mt-3 text-[11px] text-slate-600">
               🎯 {snapshot.goals.length} {t("dukun.activeGoals")}:{" "}

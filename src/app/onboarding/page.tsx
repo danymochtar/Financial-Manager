@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowLeft, Plus, X, Check } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { useT } from "@/lib/i18n";
-import { ACCOUNT_TEMPLATES, DEPENDENT_RELATIONSHIPS } from "@/lib/categories";
+import { ACCOUNT_TEMPLATES, ASSET_TEMPLATES, DEPENDENT_RELATIONSHIPS } from "@/lib/categories";
 
 type AccountDraft = {
   name: string;
@@ -20,6 +20,26 @@ type IncomeDraft = { name: string; amount: number; currency: "IDR" | "MYR"; dayO
 type FixedExpenseDraft = { name: string; amount: number; currency: "IDR" | "MYR"; dayOfMonth: number; categoryName: string };
 type DebtDraft = { name: string; remainingAmount: number; monthlyPayment: number; currency: "IDR" | "MYR" };
 type DependentDraft = { name: string; relationship: string; monthlyAmount: number; currency: "IDR" | "MYR" };
+type AssetDraft = {
+  name: string;
+  type: "property" | "vehicle" | "electronics" | "collectible" | "other";
+  subtype: string;
+  emoji: string;
+  purchasePrice: number;
+  purchaseDate: string;
+  currentValue: number;
+  currency: "IDR" | "MYR";
+  details: string;
+};
+type JobDraft = {
+  employer: string;
+  role: string;
+  startDate: string;
+  endDate: string;
+  isCurrent: boolean;
+  monthlySalary: number;
+  currency: "IDR" | "MYR";
+};
 type BudgetDraft = {
   dailyIDR?: number;
   weeklyIDR?: number;
@@ -33,8 +53,10 @@ const STEPS = [
   { key: "welcome", titleKey: "onb.welcomeTitle", emoji: "👋" },
   { key: "accounts", titleKey: "onb.stepAccounts", emoji: "🏦" },
   { key: "credit_cards", titleKey: "onb.stepCC", emoji: "💳" },
+  { key: "career", titleKey: "onb.stepCareer", emoji: "💼" },
   { key: "income", titleKey: "onb.stepIncome", emoji: "💰" },
-  { key: "fixed_expense", titleKey: "onb.stepFixedExpense", emoji: "🏠" },
+  { key: "assets", titleKey: "onb.stepAssets", emoji: "🏠" },
+  { key: "fixed_expense", titleKey: "onb.stepFixedExpense", emoji: "🧾" },
   { key: "debts", titleKey: "onb.stepDebts", emoji: "⛓️" },
   { key: "dependents", titleKey: "onb.stepDependents", emoji: "👪" },
   { key: "budget", titleKey: "onb.stepBudget", emoji: "🎯" },
@@ -54,6 +76,8 @@ export default function OnboardingPage() {
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpenseDraft[]>([]);
   const [debts, setDebts] = useState<DebtDraft[]>([]);
   const [dependents, setDependents] = useState<DependentDraft[]>([]);
+  const [assets, setAssets] = useState<AssetDraft[]>([]);
+  const [jobs, setJobs] = useState<JobDraft[]>([]);
   const [budget, setBudget] = useState<BudgetDraft>({});
   const [busy, setBusy] = useState(false);
 
@@ -149,6 +173,42 @@ export default function OnboardingPage() {
         });
       }
 
+      // 5b. Assets
+      for (const a of assets) {
+        await fetch("/api/assets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: a.name,
+            type: a.type,
+            subtype: a.subtype,
+            emoji: a.emoji,
+            purchasePrice: a.purchasePrice,
+            purchaseDate: new Date(a.purchaseDate).toISOString(),
+            currentValue: a.currentValue || a.purchasePrice,
+            currency: a.currency,
+            details: a.details || null,
+          }),
+        });
+      }
+
+      // 5c. Career / Jobs
+      for (const j of jobs) {
+        await fetch("/api/career", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employer: j.employer,
+            role: j.role || null,
+            startDate: new Date(j.startDate).toISOString(),
+            endDate: j.isCurrent ? null : j.endDate ? new Date(j.endDate).toISOString() : null,
+            monthlySalary: j.monthlySalary,
+            currency: j.currency,
+            country: j.currency === "MYR" ? "MY" : "ID",
+          }),
+        });
+      }
+
       // 6. Dependents
       for (const dep of dependents) {
         await fetch("/api/dependents", {
@@ -214,7 +274,9 @@ export default function OnboardingPage() {
             <ul className="space-y-2 text-sm">
               <li>{t("onb.welcomeAccounts")}</li>
               <li>{t("onb.welcomeCC")}</li>
+              <li>{t("onb.welcomeCareer")}</li>
               <li>{t("onb.welcomeIncome")}</li>
+              <li>{t("onb.welcomeAssets")}</li>
               <li>{t("onb.welcomeFixedExpense")}</li>
               <li>{t("onb.welcomeDebts")}</li>
               <li>{t("onb.welcomeDependents")}</li>
@@ -242,6 +304,10 @@ export default function OnboardingPage() {
           />
         )}
 
+        {current.key === "career" && <CareerStep items={jobs} setItems={setJobs} />}
+
+        {current.key === "assets" && <AssetStep items={assets} setItems={setAssets} />}
+
         {current.key === "income" && (
           <IncomeStep items={incomes} setItems={setIncomes} accounts={[...accounts, ...creditCards]} />
         )}
@@ -261,8 +327,10 @@ export default function OnboardingPage() {
             <p className="text-slate-700">{t("onb.done.body")}</p>
             <div className="card p-4 space-y-1 text-sm">
               <div>🏦 {accounts.length} {t("onb.done.accounts")} + {creditCards.length} {t("onb.done.cc")}</div>
+              <div>💼 {jobs.length} {t("onb.done.jobs")}</div>
               <div>💰 {incomes.length} {t("onb.done.income")}</div>
-              <div>🏠 {fixedExpenses.length} {t("onb.done.fixed")}</div>
+              <div>🏠 {assets.length} {t("onb.done.assets")}</div>
+              <div>🧾 {fixedExpenses.length} {t("onb.done.fixed")}</div>
               <div>⛓️ {debts.length} {t("onb.done.debts")}</div>
               <div>👪 {dependents.length} {t("onb.done.dependents")}</div>
             </div>
@@ -945,6 +1013,275 @@ function BudgetRow({
         }}
       />
       {typeof value === "number" && value > 0 && <Check className="h-4 w-4 text-emerald-500" />}
+    </div>
+  );
+}
+
+function CareerStep({ items, setItems }: { items: JobDraft[]; setItems: (v: JobDraft[]) => void }) {
+  const { t } = useT();
+  const [draft, setDraft] = useState<JobDraft>({
+    employer: "",
+    role: "",
+    startDate: new Date().toISOString().slice(0, 10),
+    endDate: "",
+    isCurrent: true,
+    monthlySalary: 0,
+    currency: "IDR",
+  });
+
+  function add() {
+    if (!draft.employer || !draft.monthlySalary) return;
+    setItems([...items, draft]);
+    setDraft({
+      employer: "",
+      role: "",
+      startDate: new Date().toISOString().slice(0, 10),
+      endDate: "",
+      isCurrent: false,
+      monthlySalary: 0,
+      currency: "IDR",
+    });
+  }
+
+  return (
+    <div className="mt-3 space-y-4">
+      <p className="text-sm text-slate-600">{t("onb.career.subtitle")}</p>
+      {items.length > 0 && (
+        <div className="space-y-2">
+          {items.map((j, i) => (
+            <div key={i} className="card flex items-center justify-between p-3">
+              <div>
+                <div className="font-medium text-sm">
+                  💼 {j.employer}
+                  {j.role && <span className="ml-1 text-slate-500 font-normal">· {j.role}</span>}
+                </div>
+                <div className="text-xs text-slate-500">
+                  {j.startDate} → {j.isCurrent ? t("career.current") : j.endDate || "—"} ·{" "}
+                  {j.currency} {j.monthlySalary.toLocaleString()}/mo
+                </div>
+              </div>
+              <button
+                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100"
+                onClick={() => setItems(items.filter((_, idx) => idx !== i))}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="card p-3 space-y-2">
+        <input
+          className="input text-sm"
+          placeholder={t("career.employer")}
+          value={draft.employer}
+          onChange={(e) => setDraft({ ...draft, employer: e.target.value })}
+        />
+        <input
+          className="input text-sm"
+          placeholder={t("career.role")}
+          value={draft.role}
+          onChange={(e) => setDraft({ ...draft, role: e.target.value })}
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] uppercase text-slate-500">{t("career.start")}</label>
+            <input
+              type="date"
+              className="input text-sm"
+              value={draft.startDate}
+              onChange={(e) => setDraft({ ...draft, startDate: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase text-slate-500">{t("career.end")}</label>
+            <input
+              type="date"
+              disabled={draft.isCurrent}
+              className="input text-sm disabled:opacity-40"
+              value={draft.endDate}
+              onChange={(e) => setDraft({ ...draft, endDate: e.target.value })}
+            />
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={draft.isCurrent}
+            onChange={(e) => setDraft({ ...draft, isCurrent: e.target.checked })}
+          />
+          <span>{t("career.isCurrent")}</span>
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            className="input text-sm"
+            type="number"
+            placeholder={t("career.monthlySalary")}
+            min="0"
+            value={draft.monthlySalary || ""}
+            onChange={(e) => setDraft({ ...draft, monthlySalary: Number(e.target.value) })}
+          />
+          <select
+            className="input text-sm"
+            value={draft.currency}
+            onChange={(e) => setDraft({ ...draft, currency: e.target.value as "IDR" | "MYR" })}
+          >
+            <option value="IDR">IDR</option>
+            <option value="MYR">MYR</option>
+          </select>
+        </div>
+        <button className="btn-primary w-full text-sm" onClick={add}>
+          <Plus className="h-4 w-4" /> {t("onb.f.add")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AssetStep({ items, setItems }: { items: AssetDraft[]; setItems: (v: AssetDraft[]) => void }) {
+  const { t } = useT();
+  const [draft, setDraft] = useState<AssetDraft>({
+    name: "",
+    type: "property",
+    subtype: "house",
+    emoji: "🏠",
+    purchasePrice: 0,
+    purchaseDate: new Date().toISOString().slice(0, 10),
+    currentValue: 0,
+    currency: "IDR",
+    details: "",
+  });
+
+  function useTpl(tpl: (typeof ASSET_TEMPLATES)[number]) {
+    setDraft((d) => ({
+      ...d,
+      type: tpl.type,
+      subtype: tpl.subtype,
+      emoji: tpl.emoji,
+      name: d.name || tpl.name,
+    }));
+  }
+
+  function add() {
+    if (!draft.name || !draft.purchasePrice) return;
+    setItems([
+      ...items,
+      { ...draft, currentValue: draft.currentValue || draft.purchasePrice },
+    ]);
+    setDraft({
+      name: "",
+      type: "property",
+      subtype: "house",
+      emoji: "🏠",
+      purchasePrice: 0,
+      purchaseDate: new Date().toISOString().slice(0, 10),
+      currentValue: 0,
+      currency: "IDR",
+      details: "",
+    });
+  }
+
+  return (
+    <div className="mt-3 space-y-4">
+      <p className="text-sm text-slate-600">{t("onb.assets.subtitle")}</p>
+      {items.length > 0 && (
+        <div className="space-y-2">
+          {items.map((a, i) => (
+            <div key={i} className="card flex items-center justify-between p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{a.emoji}</span>
+                <div>
+                  <div className="font-medium text-sm">{a.name}</div>
+                  <div className="text-xs text-slate-500">
+                    {a.currency} {a.currentValue.toLocaleString()} · {a.purchaseDate}
+                  </div>
+                </div>
+              </div>
+              <button
+                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100"
+                onClick={() => setItems(items.filter((_, idx) => idx !== i))}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div>
+        <div className="label mb-1">{t("onb.f.pickTemplate")}</div>
+        <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+          {ASSET_TEMPLATES.map((tpl) => (
+            <button
+              key={`${tpl.type}-${tpl.subtype}`}
+              type="button"
+              onClick={() => useTpl(tpl)}
+              className="chip"
+            >
+              {tpl.emoji} {tpl.name}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="card p-3 space-y-2">
+        <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
+          <input
+            className="input text-sm w-12 text-center"
+            value={draft.emoji}
+            onChange={(e) => setDraft({ ...draft, emoji: e.target.value })}
+            maxLength={4}
+          />
+          <input
+            className="input text-sm"
+            placeholder={t("asset.namePlaceholder")}
+            value={draft.name}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+          />
+        </div>
+        <textarea
+          className="input text-sm min-h-[52px]"
+          placeholder={t("asset.detailsPlaceholder")}
+          value={draft.details}
+          onChange={(e) => setDraft({ ...draft, details: e.target.value })}
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] uppercase text-slate-500">{t("asset.purchaseDate")}</label>
+            <input
+              type="date"
+              className="input text-sm"
+              value={draft.purchaseDate}
+              onChange={(e) => setDraft({ ...draft, purchaseDate: e.target.value })}
+            />
+          </div>
+          <select
+            className="input text-sm mt-[19px]"
+            value={draft.currency}
+            onChange={(e) => setDraft({ ...draft, currency: e.target.value as "IDR" | "MYR" })}
+          >
+            <option value="IDR">IDR</option>
+            <option value="MYR">MYR</option>
+          </select>
+        </div>
+        <input
+          type="number"
+          className="input text-sm"
+          placeholder={t("asset.purchasePrice")}
+          min="0"
+          value={draft.purchasePrice || ""}
+          onChange={(e) => setDraft({ ...draft, purchasePrice: Number(e.target.value) })}
+        />
+        <input
+          type="number"
+          className="input text-sm"
+          placeholder={t("asset.currentEstimate")}
+          min="0"
+          value={draft.currentValue || ""}
+          onChange={(e) => setDraft({ ...draft, currentValue: Number(e.target.value) })}
+        />
+        <button className="btn-primary w-full text-sm" onClick={add}>
+          <Plus className="h-4 w-4" /> {t("onb.f.add")}
+        </button>
+      </div>
     </div>
   );
 }

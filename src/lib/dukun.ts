@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/db";
 import { toNumber } from "@/lib/currency";
+import { computeCareerTotals } from "@/lib/career";
 
 export type FinancialSnapshot = {
   name: string;
@@ -21,6 +22,26 @@ export type FinancialSnapshot = {
     priority: number;
   }>;
   recentSpending: { last30DaysIDR: number; last30DaysMYR: number; variableOnlyIDR: number; variableOnlyMYR: number };
+  physicalAssets: Array<{
+    name: string;
+    type: string;
+    subtype: string | null;
+    purchasePrice: number;
+    purchaseDate: string;
+    currentValue: number;
+    currency: string;
+    deltaPct: number;
+  }>;
+  careerHistory: Array<{
+    employer: string;
+    role: string | null;
+    startDate: string;
+    endDate: string | null;
+    monthlySalary: number;
+    currency: string;
+    country: string;
+    monthsWorked: number;
+  }>;
   derived: {
     totalAssetIDR: number;
     totalAssetMYR: number;
@@ -28,6 +49,10 @@ export type FinancialSnapshot = {
     totalDebtMYR: number;
     totalInvestmentIDR: number;
     totalInvestmentMYR: number;
+    totalPhysicalAssetIDR: number;
+    totalPhysicalAssetMYR: number;
+    totalNetWorthIDR: number;
+    totalNetWorthMYR: number;
     monthlyIncomeIDR: number;
     monthlyIncomeMYR: number;
     monthlyFixedExpenseIDR: number;
@@ -38,28 +63,50 @@ export type FinancialSnapshot = {
     monthlyDebtPaymentMYR: number;
     freeCashFlowIDR: number;
     freeCashFlowMYR: number;
+    // Career-derived
+    yearsWorked: number;
+    firstJobStart: string | null;
+    firstJobSalary: { amount: number; currency: string } | null;
+    currentSalary: { amount: number; currency: string } | null;
+    lifetimeEarningsByCurrency: Record<string, number>;
+    moneyGapIDR: number; // lifetime earnings (IDR-equivalent) − current net worth (IDR)
+    moneyGapMYR: number;
+    savingsEfficiencyPct: number | null; // (net worth / lifetime earnings) × 100 in primary currency
   };
 };
 
 export async function buildSnapshot(userId: string): Promise<FinancialSnapshot> {
-  const [user, accounts, investments, debts, fixedIncomes, fixedExpenses, dependents, goals, txs] =
-    await Promise.all([
-      prisma.user.findUnique({ where: { id: userId }, select: { name: true, primaryCurrency: true } }),
-      prisma.account.findMany({ where: { userId, isActive: true } }),
-      prisma.investment.findMany({ where: { userId } }),
-      prisma.debt.findMany({ where: { userId, isActive: true } }),
-      prisma.fixedIncome.findMany({ where: { userId, isActive: true } }),
-      prisma.fixedExpense.findMany({ where: { userId, isActive: true }, include: { category: true } }),
-      prisma.dependent.findMany({ where: { userId } }),
-      prisma.goal.findMany({ where: { userId, isActive: true } }),
-      prisma.transaction.findMany({
-        where: {
-          userId,
-          date: { gte: new Date(Date.now() - 30 * 24 * 3600 * 1000) },
-        },
-        include: { category: true },
-      }),
-    ]);
+  const [
+    user,
+    accounts,
+    investments,
+    debts,
+    fixedIncomes,
+    fixedExpenses,
+    dependents,
+    goals,
+    physicalAssets,
+    jobs,
+    txs,
+  ] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, primaryCurrency: true } }),
+    prisma.account.findMany({ where: { userId, isActive: true } }),
+    prisma.investment.findMany({ where: { userId } }),
+    prisma.debt.findMany({ where: { userId, isActive: true } }),
+    prisma.fixedIncome.findMany({ where: { userId, isActive: true } }),
+    prisma.fixedExpense.findMany({ where: { userId, isActive: true }, include: { category: true } }),
+    prisma.dependent.findMany({ where: { userId } }),
+    prisma.goal.findMany({ where: { userId, isActive: true } }),
+    prisma.asset.findMany({ where: { userId, isActive: true } }),
+    prisma.jobRecord.findMany({ where: { userId }, orderBy: { startDate: "asc" } }),
+    prisma.transaction.findMany({
+      where: {
+        userId,
+        date: { gte: new Date(Date.now() - 30 * 24 * 3600 * 1000) },
+      },
+      include: { category: true },
+    }),
+  ]);
 
   let totalAssetIDR = 0, totalAssetMYR = 0, totalDebtIDR = 0, totalDebtMYR = 0;
   for (const a of accounts) {
@@ -83,6 +130,13 @@ export async function buildSnapshot(userId: string): Promise<FinancialSnapshot> 
     const v = toNumber(i.currentValue);
     if (i.currency === "IDR") totalInvestmentIDR += v;
     else if (i.currency === "MYR") totalInvestmentMYR += v;
+  }
+
+  let totalPhysicalAssetIDR = 0, totalPhysicalAssetMYR = 0;
+  for (const a of physicalAssets) {
+    const v = toNumber(a.currentValue);
+    if (a.currency === "IDR") totalPhysicalAssetIDR += v;
+    else if (a.currency === "MYR") totalPhysicalAssetMYR += v;
   }
 
   const monthlyIncomeIDR = fixedIncomes.reduce(
@@ -117,6 +171,38 @@ export async function buildSnapshot(userId: string): Promise<FinancialSnapshot> 
     (a, d) => a + (d.currency === "MYR" ? toNumber(d.monthlyPayment) : 0),
     0
   );
+
+  // Career totals
+  const careerTotals = computeCareerTotals(
+    jobs.map((j) => ({
+      startDate: j.startDate,
+      endDate: j.endDate,
+      monthlySalary: j.monthlySalary,
+      currency: j.currency,
+    }))
+  );
+
+  // Rough IDR equivalence for comparison (used only for "money gap" hint).
+  // We intentionally use simple constants — Dukun can re-reason with actual FX if needed.
+  const MYR_TO_IDR = 3400;
+  const lifetimeIDREquiv =
+    (careerTotals.lifetimeEarningsByCurrency.IDR ?? 0) +
+    (careerTotals.lifetimeEarningsByCurrency.MYR ?? 0) * MYR_TO_IDR +
+    (careerTotals.lifetimeEarningsByCurrency.USD ?? 0) * 15500 +
+    (careerTotals.lifetimeEarningsByCurrency.SGD ?? 0) * 11500;
+  const lifetimeMYREquiv = lifetimeIDREquiv / MYR_TO_IDR;
+
+  const totalNetWorthIDR =
+    totalAssetIDR + totalInvestmentIDR + totalPhysicalAssetIDR - totalDebtIDR;
+  const totalNetWorthMYR =
+    totalAssetMYR + totalInvestmentMYR + totalPhysicalAssetMYR - totalDebtMYR;
+
+  const moneyGapIDR = lifetimeIDREquiv - (totalNetWorthIDR + totalNetWorthMYR * MYR_TO_IDR);
+  const moneyGapMYR = moneyGapIDR / MYR_TO_IDR;
+  const savingsEfficiencyPct =
+    lifetimeIDREquiv > 0
+      ? Math.round(((totalNetWorthIDR + totalNetWorthMYR * MYR_TO_IDR) / lifetimeIDREquiv) * 1000) / 10
+      : null;
 
   const last30DaysIDR = txs
     .filter((t) => t.type === "expense")
@@ -183,6 +269,36 @@ export async function buildSnapshot(userId: string): Promise<FinancialSnapshot> 
       priority: g.priority,
     })),
     recentSpending: { last30DaysIDR, last30DaysMYR, variableOnlyIDR, variableOnlyMYR },
+    physicalAssets: physicalAssets.map((a) => {
+      const p = toNumber(a.purchasePrice);
+      const c = toNumber(a.currentValue);
+      return {
+        name: a.name,
+        type: a.type,
+        subtype: a.subtype,
+        purchasePrice: p,
+        purchaseDate: a.purchaseDate.toISOString().slice(0, 10),
+        currentValue: c,
+        currency: a.currency,
+        deltaPct: p > 0 ? Math.round(((c - p) / p) * 1000) / 10 : 0,
+      };
+    }),
+    careerHistory: jobs.map((j) => ({
+      employer: j.employer,
+      role: j.role,
+      startDate: j.startDate.toISOString().slice(0, 10),
+      endDate: j.endDate?.toISOString().slice(0, 10) ?? null,
+      monthlySalary: toNumber(j.monthlySalary),
+      currency: j.currency,
+      country: j.country,
+      monthsWorked: Math.max(
+        0,
+        Math.round(
+          ((j.endDate ?? new Date()).getTime() - j.startDate.getTime()) /
+            (30.44 * 24 * 3600 * 1000)
+        )
+      ),
+    })),
     derived: {
       totalAssetIDR,
       totalAssetMYR,
@@ -190,6 +306,10 @@ export async function buildSnapshot(userId: string): Promise<FinancialSnapshot> 
       totalDebtMYR,
       totalInvestmentIDR,
       totalInvestmentMYR,
+      totalPhysicalAssetIDR,
+      totalPhysicalAssetMYR,
+      totalNetWorthIDR,
+      totalNetWorthMYR,
       monthlyIncomeIDR,
       monthlyIncomeMYR,
       monthlyFixedExpenseIDR,
@@ -202,6 +322,14 @@ export async function buildSnapshot(userId: string): Promise<FinancialSnapshot> 
         monthlyIncomeIDR - monthlyFixedExpenseIDR - monthlyDependentIDR - monthlyDebtPaymentIDR,
       freeCashFlowMYR:
         monthlyIncomeMYR - monthlyFixedExpenseMYR - monthlyDependentMYR - monthlyDebtPaymentMYR,
+      yearsWorked: careerTotals.yearsWorked,
+      firstJobStart: careerTotals.firstJobStart?.toISOString().slice(0, 10) ?? null,
+      firstJobSalary: careerTotals.firstJobSalary,
+      currentSalary: careerTotals.currentSalary,
+      lifetimeEarningsByCurrency: careerTotals.lifetimeEarningsByCurrency,
+      moneyGapIDR,
+      moneyGapMYR,
+      savingsEfficiencyPct,
     },
   };
 }
@@ -225,6 +353,9 @@ Area bantuan:
 3. **Safety net / dana darurat** — rekomendasi ideal (biasanya 3-6× monthly expense, sandwich gen 6-12×).
 4. **Debt strategy** — avalanche vs snowball, prioritas mana yg harus di-lunasin duluan.
 5. **Rekomendasi umum** — alokasi asset, kurangi boros di kategori apa, dst.
+6. **Money Trail / "duit lo kemana?"** — bandingin lifetimeEarnings (dari careerHistory) vs current net worth (accounts + investments + physicalAssets - debts). Hitung savingsEfficiencyPct. Kasih narasi jujur: udah kerja X tahun, earn total Y, tapi net worth cuma Z% dari itu. Tebak kemungkinan penyebab (gaya hidup naik cepat, aset depresiasi tinggi kayak mobil, investasi rugi, dukungan keluarga, dll) berdasarkan data yg ada. Jangan judgmental — banyak faktor valid (sandwich gen, awal karir gaji kecil, inflasi).
+7. **Asset review** — dari physicalAssets, tunjukin mana yg appreciate (biasanya properti, tanah, luxury watch) vs depreciate (mobil, gadget). Kasih insight: "mobil lo udah turun 40% sejak beli, wajar karena depresiasi normal."
+8. **Career milestone** — pake firstJobSalary vs currentSalary buat hitung CAGR gaji. Compare sama inflasi Indonesia (~4-5%/yr). Kalau stagnan, gently suggest pindah/naik skill.
 
 Constraint:
 - JANGAN ngasih investment advice spesifik (beli saham X, masuk crypto Y). Stick ke framework allocation (misal "pisahin emergency fund dari asset growth").
@@ -251,6 +382,9 @@ Help areas:
 3. **Safety net / emergency fund** — ideal (typically 3–6× monthly expense, 6–12× for sandwich gen).
 4. **Debt strategy** — avalanche vs snowball, which debt to clear first.
 5. **General recommendations** — asset allocation, which categories to cut, etc.
+6. **Money trail / "where did the money go?"** — compare lifetimeEarnings (from careerHistory) vs current net worth (accounts + investments + physicalAssets − debts). Compute savingsEfficiencyPct. Give an honest narrative: worked X years, earned total Y, net worth is Z% of that. Guess likely causes (lifestyle inflation, depreciating assets like cars, bad investments, family support) from the data. Avoid judgment — many causes are legitimate (sandwich gen, low early-career salary, inflation).
+7. **Asset review** — from physicalAssets, show which appreciate (property, land, luxury watches) vs depreciate (cars, gadgets). Share context: "your car is down 40% since purchase — normal depreciation."
+8. **Career milestone** — use firstJobSalary vs currentSalary to compute salary CAGR. Compare with Indonesian inflation (~4–5%/yr). If stagnant, gently suggest pivot/skill-up.
 
 Constraints:
 - DO NOT give specific investment advice (buy stock X, enter crypto Y). Stick to allocation frameworks (e.g. "separate emergency fund from growth assets").
