@@ -98,7 +98,21 @@ type Job = {
 };
 type Category = { id: string; name: string; kind: string; emoji: string; nature: string };
 
-type Tab = "expense" | "income" | "debt" | "dependent" | "investment" | "goal" | "asset" | "career";
+type Wishlist = {
+  id: string;
+  name: string;
+  emoji: string;
+  estimatedPrice: string;
+  currency: string;
+  priority: number;
+  category: string | null;
+  note: string | null;
+  financingPlan: string | null;
+  projectedDate: string | null;
+  decisionNote: string | null;
+};
+
+type Tab = "expense" | "income" | "debt" | "dependent" | "investment" | "goal" | "asset" | "career" | "wishlist";
 
 export default function WajibPage() {
   const { t } = useT();
@@ -112,12 +126,13 @@ export default function WajibPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [wishlist, setWishlist] = useState<Wishlist[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<{ tab: EditTab; item: EditableItem } | null>(null);
 
   async function load() {
-    const [i, e, d, p, inv, g, a, j, c] = await Promise.all([
+    const [i, e, d, p, inv, g, a, j, w, c] = await Promise.all([
       fetch("/api/fixed-incomes").then((r) => r.json()),
       fetch("/api/fixed-expenses").then((r) => r.json()),
       fetch("/api/debts").then((r) => r.json()),
@@ -126,6 +141,7 @@ export default function WajibPage() {
       fetch("/api/goals").then((r) => r.json()),
       fetch("/api/assets").then((r) => r.json()),
       fetch("/api/career").then((r) => r.json()),
+      fetch("/api/wishlist").then((r) => r.json()),
       fetch("/api/categories").then((r) => r.json()),
     ]);
     setIncomes(i.fixedIncomes ?? []);
@@ -136,6 +152,7 @@ export default function WajibPage() {
     setGoals(g.goals ?? []);
     setAssets(a.assets ?? []);
     setJobs(j.jobs ?? []);
+    setWishlist(w.wishlist ?? []);
     setCategories(c.categories ?? []);
   }
   useEffect(() => {
@@ -151,6 +168,7 @@ export default function WajibPage() {
     { k: "dependent", l: t("wajib.tab.dependent") },
     { k: "investment", l: t("wajib.tab.investment") },
     { k: "goal", l: t("wajib.tab.goal") },
+    { k: "wishlist", l: t("wajib.tab.wishlist") },
   ];
 
   return (
@@ -187,7 +205,7 @@ export default function WajibPage() {
             title: item.name,
             sub: `${item.category.name} · d ${item.dayOfMonth ?? "-"}`,
             amount: formatShort(Number(item.amount), item.currency),
-            onClick: () => setEditing({ tab: "expense", item: item as EditableItem }),
+            onClick: () => setEditing({ tab: "expense", item: item as unknown as EditableItem }),
           })}
         />
       )}
@@ -279,6 +297,12 @@ export default function WajibPage() {
               amountColor: g.priority === 1 ? "rose" : "emerald",
             };
           }}
+        />
+      )}
+      {tab === "wishlist" && (
+        <WishlistList
+          items={wishlist}
+          onEdit={(w) => setEditing({ tab: "wishlist", item: w as EditableItem })}
         />
       )}
 
@@ -565,6 +589,8 @@ function AddSheet({
       ? t("wajib.addAsset")
       : tab === "career"
       ? t("wajib.addJob")
+      : tab === "wishlist"
+      ? t("wajib.addWishlist")
       : t("wajib.addTitle");
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4" onClick={onClose}>
@@ -586,6 +612,7 @@ function AddSheet({
         {tab === "goal" && <GoalForm onAdded={onAdded} />}
         {tab === "asset" && <AssetForm onAdded={onAdded} />}
         {tab === "career" && <JobForm onAdded={onAdded} />}
+        {tab === "wishlist" && <WishlistForm onAdded={onAdded} />}
       </div>
     </div>
   );
@@ -1282,6 +1309,187 @@ function JobForm({ onAdded }: { onAdded: () => void }) {
         <MoneyInput value={monthlySalary} onChange={setMonthlySalary} currency={currency} />
       </div>
       <CurrencySelect value={currency} onChange={setCurrency} />
+      <button type="submit" className="btn-primary w-full">
+        {t("save")}
+      </button>
+    </form>
+  );
+}
+
+function WishlistList({
+  items,
+  onEdit,
+}: {
+  items: Wishlist[];
+  onEdit: (w: Wishlist) => void;
+}) {
+  const { t, locale } = useT();
+  if (items.length === 0) {
+    return <div className="card p-4 text-sm text-slate-500">{t("wishlist.empty")}</div>;
+  }
+  return (
+    <div className="space-y-2">
+      {items.map((w) => {
+        const priorityEmoji = w.priority === 1 ? "🔥" : w.priority === 3 ? "🌙" : "✨";
+        const priorityLabel =
+          w.priority === 1
+            ? t("wishlist.priority.urgent")
+            : w.priority === 3
+            ? t("wishlist.priority.someday")
+            : t("wishlist.priority.nice");
+        const projected = w.projectedDate
+          ? new Date(w.projectedDate).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", {
+              month: "short",
+              year: "numeric",
+            })
+          : null;
+        return (
+          <button
+            type="button"
+            key={w.id}
+            onClick={() => onEdit(w)}
+            className="card flex w-full items-start gap-3 p-3 text-left active:scale-[0.99] hover:bg-emerald-50/30"
+          >
+            <span className="text-2xl shrink-0">{w.emoji}</span>
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <div className="truncate text-sm font-semibold">{w.name}</div>
+                <div className="text-sm font-bold text-emerald-600 shrink-0">
+                  {formatShort(Number(w.estimatedPrice), w.currency)}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1 text-[11px]">
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">
+                  {priorityEmoji} {priorityLabel}
+                </span>
+                {w.category && (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
+                    {w.category}
+                  </span>
+                )}
+                {projected && (
+                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700">
+                    🗓 {projected}
+                  </span>
+                )}
+              </div>
+              {w.decisionNote && (
+                <div className="rounded-lg bg-amber-50/70 px-2 py-1 text-[11px] text-amber-800">
+                  🧙 {w.decisionNote}
+                </div>
+              )}
+              {w.financingPlan && (
+                <div className="text-[11px] text-slate-500">💳 {w.financingPlan}</div>
+              )}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function WishlistForm({ onAdded }: { onAdded: () => void }) {
+  const { t } = useT();
+  const toast = useToast();
+  const [name, setName] = useState("");
+  const [emoji, setEmoji] = useState("🛒");
+  const [estimatedPrice, setEstimatedPrice] = useState(0);
+  const [currency, setCurrency] = useState<"IDR" | "MYR" | "USD" | "SGD">("IDR");
+  const [priority, setPriority] = useState(2);
+  const [category, setCategory] = useState("");
+  const [projectedDate, setProjectedDate] = useState("");
+  const [financingPlan, setFinancingPlan] = useState("");
+  const [decisionNote, setDecisionNote] = useState("");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name || !estimatedPrice) return;
+    const res = await fetch("/api/wishlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        emoji,
+        estimatedPrice,
+        currency,
+        priority,
+        category: category || null,
+        projectedDate: projectedDate || null,
+        financingPlan: financingPlan || null,
+        decisionNote: decisionNote || null,
+      }),
+    });
+    if (!res.ok) {
+      toast({ kind: "error", message: t("toast.failed") });
+      return;
+    }
+    toast({ kind: "success", message: t("toast.saved") });
+    onAdded();
+  }
+  return (
+    <form className="space-y-2" onSubmit={submit}>
+      <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
+        <input
+          className="input text-sm w-12 text-center"
+          value={emoji}
+          onChange={(e) => setEmoji(e.target.value)}
+          maxLength={4}
+        />
+        <input
+          className="input text-sm"
+          placeholder={t("wishlist.namePlaceholder")}
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+      <CurrencySelect value={currency} onChange={setCurrency} />
+      <div>
+        <label className="label">{t("wishlist.estimatedPrice")}</label>
+        <MoneyInput value={estimatedPrice} onChange={setEstimatedPrice} currency={currency} />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="label">{t("wishlist.projectedDate")}</label>
+          <input
+            type="date"
+            className="input text-sm"
+            value={projectedDate}
+            onChange={(e) => setProjectedDate(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="label">{t("wajib.form.goalPriority")}</label>
+          <select
+            className="input text-sm"
+            value={priority}
+            onChange={(e) => setPriority(Number(e.target.value))}
+          >
+            <option value={1}>{t("wishlist.priority.urgent")}</option>
+            <option value={2}>{t("wishlist.priority.nice")}</option>
+            <option value={3}>{t("wishlist.priority.someday")}</option>
+          </select>
+        </div>
+      </div>
+      <input
+        className="input text-sm"
+        placeholder={t("wishlist.categoryHint")}
+        value={category}
+        onChange={(e) => setCategory(e.target.value)}
+      />
+      <input
+        className="input text-sm"
+        placeholder={t("wishlist.financingPlanHint")}
+        value={financingPlan}
+        onChange={(e) => setFinancingPlan(e.target.value)}
+      />
+      <textarea
+        className="input text-sm min-h-[56px]"
+        placeholder={t("wishlist.decisionNoteHint")}
+        value={decisionNote}
+        onChange={(e) => setDecisionNote(e.target.value)}
+      />
       <button type="submit" className="btn-primary w-full">
         {t("save")}
       </button>

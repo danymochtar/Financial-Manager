@@ -15,7 +15,8 @@ export type EditTab =
   | "investment"
   | "goal"
   | "asset"
-  | "career";
+  | "career"
+  | "wishlist";
 
 type Currency = "IDR" | "MYR" | "USD" | "SGD";
 
@@ -33,6 +34,7 @@ export type EditableItem = {
   currentValue?: string;
   currentSaved?: string;
   targetAmount?: string;
+  estimatedPrice?: string;
   purchasePrice?: string;
   platform?: string | null;
   details?: string | null;
@@ -40,10 +42,15 @@ export type EditableItem = {
   currency?: string;
   relationship?: string;
   targetDate?: string | null;
+  projectedDate?: string | null;
   startDate?: string;
   endDate?: string | null;
   priority?: number;
   emoji?: string;
+  category?: string | null;
+  note?: string | null;
+  financingPlan?: string | null;
+  decisionNote?: string | null;
 };
 
 const API_PATH: Record<EditTab, string> = {
@@ -55,6 +62,7 @@ const API_PATH: Record<EditTab, string> = {
   goal: "/api/goals",
   asset: "/api/assets",
   career: "/api/career",
+  wishlist: "/api/wishlist",
 };
 
 export function QuickEditSheet({
@@ -83,6 +91,7 @@ export function QuickEditSheet({
     if (tab === "goal") return Number(item.targetAmount ?? 0);
     if (tab === "asset") return Number(item.currentValue ?? 0);
     if (tab === "career") return Number(item.monthlySalary ?? 0);
+    if (tab === "wishlist") return Number(item.estimatedPrice ?? 0);
     return Number(item.amount ?? 0);
   });
   const [secondaryAmount, setSecondaryAmount] = useState<number>(() => {
@@ -98,7 +107,14 @@ export function QuickEditSheet({
   const [targetDate, setTargetDate] = useState<string>(
     item.targetDate ? new Date(item.targetDate).toISOString().slice(0, 10) : ""
   );
+  const [projectedDate, setProjectedDate] = useState<string>(
+    item.projectedDate ? new Date(item.projectedDate).toISOString().slice(0, 10) : ""
+  );
   const [priority, setPriority] = useState<number>(item.priority ?? 2);
+  const [wishlistCategory, setWishlistCategory] = useState<string>(item.category ?? "");
+  const [financingPlan, setFinancingPlan] = useState<string>(item.financingPlan ?? "");
+  const [decisionNote, setDecisionNote] = useState<string>(item.decisionNote ?? "");
+  const [note, setNote] = useState<string>(item.note ?? "");
   const [isCurrent, setIsCurrent] = useState<boolean>(
     tab === "career" ? !item.endDate : false
   );
@@ -147,6 +163,16 @@ export function QuickEditSheet({
         body.monthlySalary = primaryAmount;
         body.endDate = isCurrent ? null : endDate ? new Date(endDate).toISOString() : null;
         body.country = currency === "MYR" ? "MY" : currency === "USD" ? "US" : currency === "SGD" ? "SG" : "ID";
+      } else if (tab === "wishlist") {
+        body.name = name;
+        body.emoji = emoji || "🛒";
+        body.estimatedPrice = primaryAmount;
+        body.priority = priority;
+        body.category = wishlistCategory || null;
+        body.financingPlan = financingPlan || null;
+        body.decisionNote = decisionNote || null;
+        body.note = note || null;
+        body.projectedDate = projectedDate ? new Date(projectedDate).toISOString() : null;
       }
 
       const res = await fetch(`${API_PATH[tab]}/${item.id}`, {
@@ -193,6 +219,8 @@ export function QuickEditSheet({
       ? t("asset.current")
       : tab === "career"
       ? t("career.monthlySalary")
+      : tab === "wishlist"
+      ? t("wishlist.estimatedPrice")
       : t("wajib.form.amount");
 
   return (
@@ -209,7 +237,7 @@ export function QuickEditSheet({
           </button>
         </div>
 
-        {(tab === "goal" || tab === "asset") && (
+        {(tab === "goal" || tab === "asset" || tab === "wishlist") && (
           <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
             <input
               className="input text-sm w-14 text-center"
@@ -227,7 +255,7 @@ export function QuickEditSheet({
           </div>
         )}
 
-        {tab !== "goal" && tab !== "asset" && (
+        {tab !== "goal" && tab !== "asset" && tab !== "wishlist" && (
           <div>
             <label className="label">{nameLabel}</label>
             <input
@@ -372,6 +400,69 @@ export function QuickEditSheet({
                 />
               </div>
             )}
+          </>
+        )}
+
+        {tab === "wishlist" && (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="label">{t("wishlist.projectedDate")}</label>
+                <input
+                  type="date"
+                  className="input text-sm mt-1"
+                  value={projectedDate}
+                  onChange={(e) => setProjectedDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="label">{t("wajib.form.goalPriority")}</label>
+                <select
+                  className="input text-sm mt-1"
+                  value={priority}
+                  onChange={(e) => setPriority(Number(e.target.value))}
+                >
+                  <option value={1}>{t("wishlist.priority.urgent")}</option>
+                  <option value={2}>{t("wishlist.priority.nice")}</option>
+                  <option value={3}>{t("wishlist.priority.someday")}</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="label">{t("wishlist.category")}</label>
+              <input
+                className="input text-sm mt-1"
+                placeholder={t("wishlist.categoryHint")}
+                value={wishlistCategory}
+                onChange={(e) => setWishlistCategory(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label">{t("wishlist.financingPlan")}</label>
+              <input
+                className="input text-sm mt-1"
+                placeholder={t("wishlist.financingPlanHint")}
+                value={financingPlan}
+                onChange={(e) => setFinancingPlan(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label">{t("wishlist.decisionNote")}</label>
+              <textarea
+                className="input text-sm mt-1 min-h-[72px]"
+                placeholder={t("wishlist.decisionNoteHint")}
+                value={decisionNote}
+                onChange={(e) => setDecisionNote(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label">{t("wishlist.note")}</label>
+              <textarea
+                className="input text-sm mt-1 min-h-[48px]"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
           </>
         )}
 

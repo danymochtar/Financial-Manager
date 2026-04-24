@@ -150,6 +150,81 @@ export const DUKUN_TOOLS: Anthropic.Messages.Tool[] = [
       required: ["categoryId", "name", "amount", "currency"],
     },
   },
+  {
+    name: "list_wishlist",
+    description: "List wishlist items user (item yg dipertimbangin buat dibeli).",
+    input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "add_wishlist",
+    description:
+      'Simpen item ke wishlist SETELAH simulasi affordability/financing. Pake ketika user bilang "simpen ke wishlist", "catet", "save ini" setelah bahas "pengen beli X". JANGAN langsung simpan sebelum tanya harga + simulasi. decisionNote WAJIB isi ringkasan analisa (realistis/engga + saran). projectedDate = estimasi tanggal paling cepat bisa dibeli cash berdasarkan free cash flow.',
+    input_schema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: 'Nama item (e.g. "iPhone 16 Pro 256GB", "Honda Brio 2020 bekas")' },
+        emoji: { type: "string", description: "Emoji mewakili item" },
+        estimatedPrice: { type: "number" },
+        currency: { type: "string", enum: ["IDR", "MYR", "USD", "SGD"] },
+        priority: { type: "number", description: "1=urgent/pengen banget, 2=nice, 3=someday" },
+        category: { type: "string", description: "gadget|travel|experience|home|vehicle|other" },
+        note: { type: "string", description: "Catatan bebas dari user" },
+        financingPlan: {
+          type: "string",
+          description: 'Ringkas rencana financing kalau ada. Misal: "cicilan 12 bln Rp 1.75jt, bunga 0%" atau "cash setelah nabung 8 bulan".',
+        },
+        projectedDate: {
+          type: "string",
+          description: "yyyy-mm-dd estimasi paling cepat bisa kebeli cash dari free cash flow. Null kalau gak realistis.",
+        },
+        decisionNote: {
+          type: "string",
+          description: "Kesimpulan Dukun: realistis/engga, untung/rugi beli, recommend cash vs cicilan. 1-3 kalimat padat.",
+        },
+      },
+      required: ["name", "estimatedPrice", "currency", "decisionNote"],
+    },
+  },
+  {
+    name: "update_wishlist",
+    description: "Update wishlist item (ganti priority, harga, decisionNote, dll).",
+    input_schema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        name: { type: "string" },
+        estimatedPrice: { type: "number" },
+        priority: { type: "number" },
+        financingPlan: { type: "string" },
+        projectedDate: { type: "string" },
+        decisionNote: { type: "string" },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    name: "remove_wishlist",
+    description: 'Hapus wishlist item (user bilang "udah gak jadi", "hapus aja", "lupain"). Konfirm dulu sebelum hapus.',
+    input_schema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    name: "convert_wishlist_to_goal",
+    description: 'Convert wishlist item ke Goal (committed savings target). Pake kalau user bilang "yaudah gw nabung buat ini aja", "jadikan goal". Akan mark wishlist isConverted=true dan create Goal baru dengan targetAmount = estimatedPrice.',
+    input_schema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        targetDate: { type: "string", description: "yyyy-mm-dd deadline goal; null = tanpa deadline" },
+      },
+      required: ["id"],
+    },
+  },
 ];
 
 /**
@@ -405,6 +480,117 @@ export async function executeTool(
           },
         });
         return { ok: true, fixedExpenseId: created.id, name: created.name, category: cat.name };
+      }
+
+      case "list_wishlist": {
+        const items = await prisma.wishlist.findMany({
+          where: { userId, isConverted: false },
+          orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
+        });
+        return items.map((w) => ({
+          id: w.id,
+          name: w.name,
+          emoji: w.emoji,
+          estimatedPrice: toNumber(w.estimatedPrice),
+          currency: w.currency,
+          priority: w.priority,
+          category: w.category,
+          note: w.note,
+          financingPlan: w.financingPlan,
+          projectedDate: w.projectedDate?.toISOString().slice(0, 10) ?? null,
+          decisionNote: w.decisionNote,
+          createdAt: w.createdAt.toISOString().slice(0, 10),
+        }));
+      }
+
+      case "add_wishlist": {
+        const a = args as {
+          name: string;
+          emoji?: string;
+          estimatedPrice: number;
+          currency: string;
+          priority?: number;
+          category?: string | null;
+          note?: string | null;
+          financingPlan?: string | null;
+          projectedDate?: string | null;
+          decisionNote: string;
+        };
+        const created = await prisma.wishlist.create({
+          data: {
+            userId,
+            name: a.name,
+            emoji: a.emoji ?? "🛒",
+            estimatedPrice: new Prisma.Decimal(a.estimatedPrice),
+            currency: a.currency,
+            priority: a.priority ?? 2,
+            category: a.category ?? null,
+            note: a.note ?? null,
+            financingPlan: a.financingPlan ?? null,
+            projectedDate: a.projectedDate ? new Date(a.projectedDate) : null,
+            decisionNote: a.decisionNote,
+          },
+        });
+        return { ok: true, wishlistId: created.id, name: created.name };
+      }
+
+      case "update_wishlist": {
+        const a = args as {
+          id: string;
+          name?: string;
+          estimatedPrice?: number;
+          priority?: number;
+          financingPlan?: string;
+          projectedDate?: string;
+          decisionNote?: string;
+        };
+        const existing = await prisma.wishlist.findFirst({ where: { id: a.id, userId } });
+        if (!existing) return { error: "Wishlist not found" };
+        const updated = await prisma.wishlist.update({
+          where: { id: a.id },
+          data: {
+            name: a.name,
+            estimatedPrice:
+              a.estimatedPrice != null ? new Prisma.Decimal(a.estimatedPrice) : undefined,
+            priority: a.priority,
+            financingPlan: a.financingPlan,
+            projectedDate: a.projectedDate ? new Date(a.projectedDate) : undefined,
+            decisionNote: a.decisionNote,
+          },
+        });
+        return { ok: true, name: updated.name };
+      }
+
+      case "remove_wishlist": {
+        const a = args as { id: string };
+        const existing = await prisma.wishlist.findFirst({ where: { id: a.id, userId } });
+        if (!existing) return { error: "Wishlist not found" };
+        await prisma.wishlist.delete({ where: { id: a.id } });
+        return { ok: true };
+      }
+
+      case "convert_wishlist_to_goal": {
+        const a = args as { id: string; targetDate?: string | null };
+        const wish = await prisma.wishlist.findFirst({ where: { id: a.id, userId } });
+        if (!wish) return { error: "Wishlist not found" };
+        const goal = await prisma.$transaction(async (trx) => {
+          const g = await trx.goal.create({
+            data: {
+              userId,
+              name: wish.name,
+              emoji: wish.emoji,
+              targetAmount: wish.estimatedPrice,
+              currentSaved: new Prisma.Decimal(0),
+              currency: wish.currency,
+              targetDate: a.targetDate ? new Date(a.targetDate) : null,
+              priority: wish.priority,
+              note: wish.note,
+            },
+          });
+          await trx.wishlist.update({ where: { id: wish.id }, data: { isConverted: true } });
+          return g;
+        });
+        return { ok: true, goalId: goal.id, goalName: goal.name };
       }
 
       default:

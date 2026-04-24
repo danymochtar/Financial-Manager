@@ -37,6 +37,7 @@ model User {
   goals          Goal[]
   assets         Asset[]
   jobRecords     JobRecord[]
+  wishlist       Wishlist[]
 }
 
 // Rekening, e-money, cash, kartu kredit.
@@ -347,6 +348,30 @@ model JobRecord {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// "Pengen beli X" — item yg dipertimbangin user, bukan goal committed.
+// Dukun simulasi affordability + financing, simpen hasilnya di sini.
+model Wishlist {
+  id             String    @id @default(cuid())
+  userId         String
+  name           String
+  emoji          String    @default("🛒")
+  estimatedPrice Decimal
+  currency       String
+  priority       Int       @default(2) // 1=urgent/pengen banget, 2=nice, 3=someday
+  category       String? // "gadget" | "travel" | "experience" | "home" | "vehicle" | "other"
+  note           String?
+  financingPlan  String? // free-text: "cicilan 12 bln Rp 1.5jt" atau JSON kalau mau structured
+  projectedDate  DateTime? // AI proyeksi kapan realistis kebeli
+  decisionNote   String? // AI's verdict: untung/rugi, realistis/engga, saran
+  isConverted    Boolean   @default(false) // pernah di-convert ke Goal
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isConverted])
 }
 
 model FxRate {

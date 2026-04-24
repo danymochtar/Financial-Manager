@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, Send, Loader2, Target, ShieldCheck, TrendingUp, Flame, RefreshCw, Compass } from "lucide-react";
+import { Sparkles, Send, Loader2, Target, ShieldCheck, TrendingUp, Flame, RefreshCw, Compass, ShoppingCart } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { formatShort } from "@/lib/currency";
 import { useT } from "@/lib/i18n";
@@ -41,6 +41,7 @@ type Snapshot = {
 type Msg = { id: string; role: "user" | "assistant"; content: string; toolsUsed?: string[] };
 
 const QUICK_ACTION_KEYS = [
+  { key: "wishlist", labelKey: "dukun.qa.wishlist", promptKey: "dukun.prompt.wishlist", icon: ShoppingCart },
   { key: "roast", labelKey: "dukun.qa.roast", promptKey: "dukun.prompt.roast", icon: Flame },
   { key: "ritual", labelKey: "dukun.qa.ritual", promptKey: "dukun.prompt.ritual", icon: Sparkles },
   { key: "invest", labelKey: "dukun.qa.invest", promptKey: "dukun.prompt.invest", icon: TrendingUp },
@@ -277,12 +278,17 @@ function toolLabel(name: string): string {
     list_categories: "baca kategori",
     list_goals: "baca goals",
     list_assets: "baca aset",
+    list_wishlist: "baca wishlist",
     add_transaction: "catet transaksi",
     update_account_balance: "update saldo",
     add_goal: "tambah goal",
     add_asset: "tambah aset",
     update_asset_value: "update nilai aset",
     add_fixed_expense: "tambah expense fix",
+    add_wishlist: "simpen wishlist",
+    update_wishlist: "update wishlist",
+    remove_wishlist: "hapus wishlist",
+    convert_wishlist_to_goal: "convert ke goal",
   };
   return map[name] ?? name;
 }

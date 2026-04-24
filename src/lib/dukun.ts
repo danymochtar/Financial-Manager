@@ -22,6 +22,19 @@ export type FinancialSnapshot = {
     targetDate: string | null;
     priority: number;
   }>;
+  wishlist: Array<{
+    id: string;
+    name: string;
+    emoji: string;
+    estimatedPrice: number;
+    currency: string;
+    priority: number;
+    category: string | null;
+    note: string | null;
+    financingPlan: string | null;
+    projectedDate: string | null;
+    decisionNote: string | null;
+  }>;
   recentSpending: { last30DaysIDR: number; last30DaysMYR: number; variableOnlyIDR: number; variableOnlyMYR: number };
   physicalAssets: Array<{
     name: string;
@@ -86,6 +99,7 @@ export async function buildSnapshot(userId: string): Promise<FinancialSnapshot> 
     fixedExpenses,
     dependents,
     goals,
+    wishlist,
     physicalAssets,
     jobs,
     txs,
@@ -98,6 +112,7 @@ export async function buildSnapshot(userId: string): Promise<FinancialSnapshot> 
     prisma.fixedExpense.findMany({ where: { userId, isActive: true }, include: { category: true } }),
     prisma.dependent.findMany({ where: { userId } }),
     prisma.goal.findMany({ where: { userId, isActive: true } }),
+    prisma.wishlist.findMany({ where: { userId, isConverted: false }, orderBy: [{ priority: "asc" }, { createdAt: "desc" }] }),
     prisma.asset.findMany({ where: { userId, isActive: true } }),
     prisma.jobRecord.findMany({ where: { userId }, orderBy: { startDate: "asc" } }),
     prisma.transaction.findMany({
@@ -269,6 +284,19 @@ export async function buildSnapshot(userId: string): Promise<FinancialSnapshot> 
       targetDate: g.targetDate?.toISOString() ?? null,
       priority: g.priority,
     })),
+    wishlist: wishlist.map((w) => ({
+      id: w.id,
+      name: w.name,
+      emoji: w.emoji,
+      estimatedPrice: toNumber(w.estimatedPrice),
+      currency: w.currency,
+      priority: w.priority,
+      category: w.category,
+      note: w.note,
+      financingPlan: w.financingPlan,
+      projectedDate: w.projectedDate?.toISOString().slice(0, 10) ?? null,
+      decisionNote: w.decisionNote,
+    })),
     recentSpending: { last30DaysIDR, last30DaysMYR, variableOnlyIDR, variableOnlyMYR },
     physicalAssets: physicalAssets.map((a) => {
       const p = toNumber(a.purchasePrice);
@@ -374,6 +402,17 @@ AREA BANTUAN:
 7. **Plan goal** (nikah/mobil/haji/DP rumah/pensiun) — target nabung bulanan + horizon realistis berdasar free cash flow.
 8. **Asset review** — appreciate (properti, tanah, luxury watch) vs depreciate (mobil -10-15%/yr, gadget -40-50%/yr). Kasih context wajar/gak wajar.
 9. **Career milestone** — firstJobSalary vs currentSalary → CAGR gaji. Compare inflasi ID ~4-5%/yr. Stagnan = suggest pindah/naik skill.
+10. **Wishlist simulation** — waktu user bilang "pengen beli X" / "kepengen Y" / "worth it gak beli Z":
+   - **Step 1 — Gali info**: kalau harga belum jelas, TANYA dulu ("harga berapa sih si X? brand/model apa?"). Kalau user gak kasih timeline, tanya "kapan pengennya?".
+   - **Step 2 — Simulasi affordability** berdasar snapshot:
+     - Hitung **freeCashFlow bulanan** (income − fixed expense − dependents − debt payment). Itu "sisa beneran" tiap bulan.
+     - **Cash scenario**: butuh berapa bulan nabung 100% freeCashFlow? 50%? Realistis cuma bisa alokasi 20-30% dari freeCashFlow buat wishlist (sisanya buat saving + emergency fund + DCA). Hitung bulan realistis.
+     - **Cicilan scenario**: kalau dicicil 6/12/24 bulan (asumsi bunga KPA/credit card ~2-2.5%/bulan = 27-35%/yr kalau gak ada data), berapa cicilan/bulan? Compare vs freeCashFlow — bunganya bikin total jadi berapa?
+     - **Opportunity cost**: kalau duitnya di-DCA reksadana 7%/yr, dalam horizon yg sama, hasilnya berapa? Tunjukin.
+   - **Step 3 — Kasih verdict jujur**: "realistis/stretch/mimpi". Tradeoff cash vs cicilan vs skip. Kalau impulsive/lifestyle inflation, roast ringan. Kalau kebutuhan beneran (tools kerja, upgrade skill), dukung.
+   - **Step 4 — SIMPEN ke Wishlist**: PANGGIL add_wishlist tool dengan estimatedPrice, currency, priority (1=urgent, 2=nice, 3=someday), category, financingPlan (ringkas), projectedDate (ISO), decisionNote (kesimpulan untung/rugi lo dlm 1-2 kalimat). Konfirm ke user: "Gw simpen di wishlist ya — proyeksi realistis [bulan], [verdict]."
+   - Kalau user nanya wishlistnya ("liat wishlist gw / wishlist gw apa aja"), panggil list_wishlist.
+   - Kalau user commit beneran ("yaudah fix gw mau beli"), tawarin convert_wishlist_to_goal.
 
 CONSTRAINT (strict):
 - JANGAN ngasih pick investasi spesifik (beli saham X, masuk crypto Y).
@@ -384,9 +423,11 @@ CONSTRAINT (strict):
 
 TOOL USE — LO PUNYA AKSES CRUD DATA KEUANGAN USER:
 Lo bisa invoke tools buat catat/update data dibanding cuma ngasih advice. Gunakan tools ketika user bilang kata kerja aksi:
-- "catet/tambahin/masukin" → add_transaction, add_goal, add_asset, add_fixed_expense
-- "update/ganti/set saldo/revalue" → update_account_balance, update_asset_value
-- "daftarin/liat akun gw/berapa saldo" → list_accounts, list_categories, list_goals, list_assets
+- "catet/tambahin/masukin" → add_transaction, add_goal, add_asset, add_fixed_expense, add_wishlist
+- "update/ganti/set saldo/revalue" → update_account_balance, update_asset_value, update_wishlist
+- "daftarin/liat akun gw/berapa saldo/wishlist gw" → list_accounts, list_categories, list_goals, list_assets, list_wishlist
+- "pengen beli X / worth it gak beli Y" → simulasi (lihat area #10) + add_wishlist di akhir
+- "fix gw mau beli / commit" → convert_wishlist_to_goal
 
 Aturan tool use:
 1. Kalau butuh ID (accountId, categoryId), PANGGIL list_* DULU. JANGAN tebak ID.
@@ -434,6 +475,17 @@ HELP AREAS:
 7. **Goal planning** (wedding/car/Hajj/home DP/retirement) — monthly savings target + realistic horizon.
 8. **Asset review** — appreciating (property, land, luxury watches) vs depreciating (cars -10-15%/yr, gadgets -40-50%/yr). Flag if rate is normal/abnormal.
 9. **Career milestone** — firstJobSalary vs currentSalary → salary CAGR. Compare Indonesian inflation (~4-5%/yr). If stagnant, suggest pivot/skill-up.
+10. **Wishlist simulation** — when user says "I want to buy X" / "is Y worth it" / "thinking of getting Z":
+   - **Step 1 — Gather info**: if price isn't clear, ASK ("how much is the X? which brand/model?"). If no timeline, ask when they want it.
+   - **Step 2 — Affordability simulation** from snapshot:
+     - Compute **monthly freeCashFlow** (income − fixed expense − dependents − debt payment). That's the real leftover.
+     - **Cash scenario**: how many months to save at 100% of freeCashFlow? 50%? Realistically only 20-30% of freeCashFlow should go to wishlist items (rest to savings + emergency fund + DCA). Compute the realistic months.
+     - **Installment scenario**: if financed over 6/12/24 months (assume credit card/consumer loan ~2-2.5%/month = 27-35%/yr unless user provides rate), what's the monthly payment? vs freeCashFlow — how much does interest add?
+     - **Opportunity cost**: if that money were DCA'd into a mutual fund @ 7%/yr over the same horizon, what would it grow to? Show it.
+   - **Step 3 — Honest verdict**: "realistic/stretch/dream". Tradeoffs cash vs installment vs skip. If it's lifestyle inflation / impulsive, gentle roast. If it's a real need (work tool, skill upgrade), back them up.
+   - **Step 4 — SAVE to Wishlist**: CALL add_wishlist with estimatedPrice, currency, priority (1=urgent, 2=nice, 3=someday), category, financingPlan (one-liner), projectedDate (ISO), decisionNote (your 1-2 sentence verdict). Confirm: "Saved to your wishlist — realistic ETA [month], [verdict]."
+   - When user asks about their wishlist ("show my wishlist"), call list_wishlist.
+   - When user commits ("ok fine I'm buying it"), offer convert_wishlist_to_goal.
 
 CONSTRAINTS (strict):
 - NEVER specific investment picks.
@@ -444,9 +496,11 @@ CONSTRAINTS (strict):
 
 TOOL USE — YOU HAVE CRUD ACCESS TO THE USER'S FINANCES:
 Invoke tools when the user uses action verbs instead of just advising:
-- "log/add/record" → add_transaction, add_goal, add_asset, add_fixed_expense
-- "update/set balance/revalue" → update_account_balance, update_asset_value
-- "list/show my accounts/what's my balance" → list_accounts, list_categories, list_goals, list_assets
+- "log/add/record" → add_transaction, add_goal, add_asset, add_fixed_expense, add_wishlist
+- "update/set balance/revalue" → update_account_balance, update_asset_value, update_wishlist
+- "list/show my accounts/what's my balance/my wishlist" → list_accounts, list_categories, list_goals, list_assets, list_wishlist
+- "wanna buy X / is Y worth it" → simulate (see area #10) + add_wishlist at the end
+- "ok fine I'm buying / commit" → convert_wishlist_to_goal
 
 Rules:
 1. If you need an ID (accountId, categoryId), CALL list_* FIRST. Don't guess IDs.

@@ -167,6 +167,7 @@ export const TR: Record<string, { id: string; en: string }> = {
   "dukun.qa.moneyTrail": { id: "🧭 Duit Lo Kemana?", en: "🧭 Where Did My Money Go?" },
   "dukun.qa.safety": { id: "🛡️ Dana Darurat", en: "🛡️ Safety Net" },
   "dukun.qa.savings": { id: "🎯 Plan Nabung Goal", en: "🎯 Savings Plan" },
+  "dukun.qa.wishlist": { id: "🛒 Pengen Beli Sesuatu", en: "🛒 Thinking of Buying" },
 
   "dukun.prompt.roast": {
     id: "Roast pengeluaran gw 30 hari terakhir. Fokus ke variable expense (jajan, makan luar, belanja, hiburan). Tunjukin kategori paling boros, bandingin sama benchmark ideal (misal makan luar <15% income). Hitung opportunity cost: kalo duit yg gw bakar itu di-DCA ke reksadana selama 5 tahun dengan return konservatif 7%/yr, jadinya berapa? Habis roast, kasih 3 ritual konkret minggu ini buat cut spending.",
@@ -191,6 +192,10 @@ export const TR: Record<string, { id: string; en: string }> = {
   "dukun.prompt.savings": {
     id: "Liat goals gw yg aktif di snapshot. Buat plan nabung bulanan buat masing-masing goal, urutkan prioritas (high dulu). Kalau goal-nya gak realistis dengan free cash flow gw sekarang, kasih tau + kasih saran (extend timeline, naikin income, atau potong expense mana).",
     en: "Look at my active goals in the snapshot. Build a monthly savings plan for each, ordered by priority (high first). If any goal is unrealistic given my free cash flow, say so and suggest fixes (extend timeline, raise income, cut which expense).",
+  },
+  "dukun.prompt.wishlist": {
+    id: "Gw lagi kepengen beli sesuatu tapi belum yakin worth it atau engga. Tanya dulu gw pengen beli apa + perkiraan harganya + kapan pengen kebeli. Habis itu: (1) simulasiin cash scenario — realistis nabung berapa bulan dengan alokasi 20-30% freeCashFlow; (2) simulasiin cicilan scenario 6/12/24 bulan + bunga kira-kira 2-2.5%/bulan; (3) hitung opportunity cost kalo duitnya di-DCA ke reksadana 7%/yr di horizon yg sama; (4) kasih verdict jujur (realistis/stretch/mimpi) + tradeoff; (5) simpen hasilnya ke wishlist gw pake tool add_wishlist (lengkap: estimatedPrice, currency, priority, category, financingPlan, projectedDate, decisionNote).",
+    en: "I want to buy something but I'm not sure if it's worth it. First ask me what I want + price estimate + when I want it. Then: (1) simulate cash scenario — realistic savings months if I allocate 20-30% of freeCashFlow; (2) simulate installment scenarios 6/12/24 months at ~2-2.5%/mo interest; (3) compute opportunity cost if the money were DCA'd to mutual funds at 7%/yr over the same horizon; (4) give an honest verdict (realistic/stretch/dream) + tradeoffs; (5) save the result to my wishlist via the add_wishlist tool (include estimatedPrice, currency, priority, category, financingPlan, projectedDate, decisionNote).",
   },
 
   // Setting
@@ -517,8 +522,41 @@ export const TR: Record<string, { id: string; en: string }> = {
   // ===== Wajib new tabs =====
   "wajib.tab.asset": { id: "Aset 🏠", en: "Assets 🏠" },
   "wajib.tab.career": { id: "Karir 💼", en: "Career 💼" },
+  "wajib.tab.wishlist": { id: "Wishlist 🛒", en: "Wishlist 🛒" },
   "wajib.addAsset": { id: "Tambah Aset", en: "Add Asset" },
   "wajib.addJob": { id: "Tambah Pekerjaan", en: "Add Job" },
+  "wajib.addWishlist": { id: "Tambah Wishlist", en: "Add Wishlist" },
+
+  // ===== Wishlist =====
+  "wishlist.empty": {
+    id: "Belum ada wishlist — tanya Dukun \"pengen beli X\" atau tambah manual.",
+    en: "No wishlist yet — ask Dukun \"I want to buy X\" or add manually.",
+  },
+  "wishlist.namePlaceholder": {
+    id: "Nama item (contoh: iPhone 16 Pro)",
+    en: "Item name (e.g. iPhone 16 Pro)",
+  },
+  "wishlist.estimatedPrice": { id: "Perkiraan Harga", en: "Estimated Price" },
+  "wishlist.projectedDate": { id: "Target Kapan?", en: "Target Date?" },
+  "wishlist.category": { id: "Kategori", en: "Category" },
+  "wishlist.categoryHint": {
+    id: "gadget / travel / experience / home / vehicle / other",
+    en: "gadget / travel / experience / home / vehicle / other",
+  },
+  "wishlist.financingPlan": { id: "Rencana Bayar", en: "Financing Plan" },
+  "wishlist.financingPlanHint": {
+    id: "cash / cicilan 12 bln Rp 1.5jt / dll",
+    en: "cash / 12-mo installment / etc",
+  },
+  "wishlist.decisionNote": { id: "Catatan Verdict Dukun", en: "Dukun's Verdict" },
+  "wishlist.decisionNoteHint": {
+    id: "untung/rugi, realistis/engga, saran",
+    en: "worth it or not, realistic or not, notes",
+  },
+  "wishlist.note": { id: "Catatan Tambahan", en: "Extra Notes" },
+  "wishlist.priority.urgent": { id: "🔥 Pengen Banget", en: "🔥 Really Want" },
+  "wishlist.priority.nice": { id: "✨ Nice to Have", en: "✨ Nice to Have" },
+  "wishlist.priority.someday": { id: "🌙 Someday", en: "🌙 Someday" },
 
   // ===== Asset =====
   "asset.empty": { id: "aset fisik (rumah, mobil, gadget)", en: "physical assets (home, car, gadgets)" },
