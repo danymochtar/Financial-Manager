@@ -379,6 +379,49 @@ export const TR: Record<string, { id: string; en: string }> = {
   "akun.typeCash": { id: "Cash", en: "Cash" },
   "akun.typeCC": { id: "Credit Card", en: "Credit Card" },
   "akun.limit": { id: "limit", en: "limit" },
+  "akun.tileAsset": { id: "Aset", en: "Assets" },
+  "akun.tileLiability": { id: "Hutang", en: "Debts" },
+  "akun.tileInvestment": { id: "Investasi", en: "Investments" },
+  "akun.tapToAdd": { id: "tap buat tambah", en: "tap to add" },
+  "akun.itemCount": { id: "item", en: "item" },
+  "akun.itemCountPlural": { id: "item", en: "items" },
+  "akun.addAsset": { id: "Tambah Aset", en: "Add Asset" },
+  "akun.addLiability": { id: "Tambah Hutang", en: "Add Debt" },
+  "akun.addInvestment": { id: "Tambah Investasi", en: "Add Investment" },
+  "akun.assetSubtitle": {
+    id: "Bank, e-wallet, atau cash — duit yang lo punya",
+    en: "Bank, e-wallet, or cash — money you have",
+  },
+  "akun.liabilityChooserTitle": { id: "Tipe Hutang", en: "Debt Type" },
+  "akun.liabilityCC": { id: "Kartu Kredit", en: "Credit Card" },
+  "akun.liabilityCCDesc": {
+    id: "Tagihan + limit, di-track sebagai akun",
+    en: "Bill + limit, tracked as an account",
+  },
+  "akun.liabilityDebt": { id: "Cicilan / Pinjol", en: "Loan / Installment" },
+  "akun.liabilityDebtDesc": {
+    id: "KPR, KKB, motor, pinjol, KTA, dll",
+    en: "Mortgage, car/motorcycle loan, personal loan, etc.",
+  },
+  "akun.investmentSubtitle": {
+    id: "Reksadana, saham, crypto, emas, properti — apapun yang dipegang buat growth",
+    en: "Mutual funds, stocks, crypto, gold, property — anything held for growth",
+  },
+  "akun.sectionEmpty": {
+    id: "Belum ada — tap tile di atas buat nambah",
+    en: "Empty — tap the tile above to add",
+  },
+
+  // Setting currency picker
+  "setting.currencyUsed": { id: "Currency yang lo pake", en: "Currencies you use" },
+  "setting.currencyUsedHint": {
+    id: "Kalau lo gak punya hutang/aset di currency tertentu, matiin aja biar dashboard gak penuh.",
+    en: "Hide currencies you don't use so the dashboard stays focused.",
+  },
+  "setting.currencyPrimary": {
+    id: "Primary currency gak bisa dimatiin. Ganti primary dulu.",
+    en: "Primary currency can't be disabled. Switch primary first.",
+  },
 
   // ===== Catat page =====
   "catat.takePhotoBtn": { id: "Ambil Foto Struk", en: "Capture Receipt" },

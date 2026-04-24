@@ -5,7 +5,12 @@ import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { useToast } from "@/components/Toast";
 import { useT, type Locale } from "@/lib/i18n";
+import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { LogOut, Tags, Wallet, Receipt, PiggyBank } from "lucide-react";
+
+type Currency = "IDR" | "MYR" | "USD" | "SGD";
+
+const DEFAULT_ENABLED: Currency[] = [...SUPPORTED_CURRENCIES] as Currency[];
 
 export default function SettingPage() {
   const { t, locale, setLocale } = useT();
@@ -13,16 +18,25 @@ export default function SettingPage() {
   const toast = useToast();
   const [form, setForm] = useState({
     name: "",
-    primaryCurrency: "IDR" as "IDR" | "MYR" | "USD" | "SGD",
+    primaryCurrency: "IDR" as Currency,
   });
+  const [enabledCurrencies, setEnabledCurrencies] = useState<Currency[]>(DEFAULT_ENABLED);
 
   useEffect(() => {
-    if (session?.user) {
-      setForm({
-        name: session.user.name ?? "",
-        primaryCurrency: (session.user.primaryCurrency as typeof form.primaryCurrency) ?? "IDR",
-      });
-    }
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.user) {
+          setForm({
+            name: d.user.name ?? "",
+            primaryCurrency: (d.user.primaryCurrency as Currency) ?? "IDR",
+          });
+          if (Array.isArray(d.user.enabledCurrencies)) {
+            setEnabledCurrencies(d.user.enabledCurrencies as Currency[]);
+          }
+        }
+      })
+      .catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.email]);
 
@@ -31,7 +45,10 @@ export default function SettingPage() {
     const res = await fetch("/api/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        ...form,
+        enabledCurrencies,
+      }),
     });
     if (!res.ok) {
       toast({ kind: "error", message: "Error" });
@@ -39,6 +56,21 @@ export default function SettingPage() {
     }
     await update({ user: { primaryCurrency: form.primaryCurrency } });
     toast({ kind: "success", message: t("setting.saved") });
+  }
+
+  function toggleCurrency(c: Currency) {
+    setEnabledCurrencies((prev) => {
+      const has = prev.includes(c);
+      if (has) {
+        if (prev.length <= 1) return prev; // always keep at least one
+        if (c === form.primaryCurrency) {
+          toast({ kind: "error", message: t("setting.currencyPrimary") });
+          return prev;
+        }
+        return prev.filter((x) => x !== c);
+      }
+      return [...prev, c];
+    });
   }
 
   return (
@@ -78,14 +110,42 @@ export default function SettingPage() {
             className="input mt-1"
             value={form.primaryCurrency}
             onChange={(e) =>
-              setForm((f) => ({ ...f, primaryCurrency: e.target.value as typeof f.primaryCurrency }))
+              setForm((f) => ({ ...f, primaryCurrency: e.target.value as Currency }))
             }
           >
-            <option value="IDR">IDR</option>
-            <option value="MYR">MYR</option>
-            <option value="USD">USD</option>
-            <option value="SGD">SGD</option>
+            {enabledCurrencies.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           </select>
+        </div>
+        <div>
+          <label className="label">{t("setting.currencyUsed")}</label>
+          <p className="mt-1 mb-2 text-[11px] text-slate-500">
+            {t("setting.currencyUsedHint")}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {(SUPPORTED_CURRENCIES as readonly Currency[]).map((c) => {
+              const active = enabledCurrencies.includes(c);
+              const isPrimary = c === form.primaryCurrency;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => toggleCurrency(c)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase transition ${
+                    active
+                      ? "bg-emerald-600 text-white"
+                      : "bg-white text-slate-500 border border-slate-200"
+                  } ${isPrimary ? "ring-2 ring-emerald-300" : ""}`}
+                >
+                  {c}
+                  {isPrimary && " ⭐"}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <button type="submit" className="btn-primary w-full">
           {t("save")}

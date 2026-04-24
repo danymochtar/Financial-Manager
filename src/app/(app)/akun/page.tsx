@@ -8,6 +8,8 @@ import { MoneyInput, CurrencySelect } from "@/components/MoneyInput";
 import { ACCOUNT_TEMPLATES } from "@/lib/categories";
 import { useT } from "@/lib/i18n";
 
+type Currency = "IDR" | "MYR" | "USD" | "SGD";
+
 type Account = {
   id: string;
   name: string;
@@ -15,6 +17,25 @@ type Account = {
   currency: string;
   balance: string;
   creditLimit: string | null;
+  emoji: string;
+  color: string;
+};
+
+type Debt = {
+  id: string;
+  name: string;
+  remainingAmount: string;
+  monthlyPayment: string;
+  currency: string;
+};
+
+type Investment = {
+  id: string;
+  name: string;
+  type: string;
+  platform: string | null;
+  currentValue: string;
+  currency: string;
   emoji: string;
   color: string;
 };
@@ -27,14 +48,27 @@ type Upload = {
   status: string;
 };
 
+type TileKind = "asset" | "liability" | "investment";
+
 export default function AkunPage() {
   const { t } = useT();
   const toast = useToast();
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [debts, setDebts] = useState<Debt[]>([]);
+  const [investments, setInvestments] = useState<Investment[]>([]);
+  const [enabledCurrencies, setEnabledCurrencies] = useState<Currency[]>([
+    "IDR",
+    "MYR",
+    "USD",
+    "SGD",
+  ]);
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
+  const [tileAction, setTileAction] = useState<{ kind: TileKind; currency: Currency } | null>(
+    null
+  );
   const screenshotInput = useRef<HTMLInputElement>(null);
   const [uploadingBalance, setUploadingBalance] = useState(false);
   const [lastUpload, setLastUpload] = useState<{
@@ -45,8 +79,18 @@ export default function AkunPage() {
 
   async function load() {
     setLoading(true);
-    const [a] = await Promise.all([fetch("/api/accounts").then((r) => r.json())]);
+    const [a, d, i, s] = await Promise.all([
+      fetch("/api/accounts").then((r) => r.json()),
+      fetch("/api/debts").then((r) => r.json()),
+      fetch("/api/investments").then((r) => r.json()),
+      fetch("/api/settings").then((r) => r.json()),
+    ]);
     setAccounts(a.accounts ?? []);
+    setDebts(d.debts ?? []);
+    setInvestments(i.investments ?? []);
+    if (Array.isArray(s.user?.enabledCurrencies)) {
+      setEnabledCurrencies(s.user.enabledCurrencies as Currency[]);
+    }
     setLoading(false);
   }
   useEffect(() => {
@@ -103,25 +147,42 @@ export default function AkunPage() {
     load();
   }
 
-  const totalByCurrency = accounts.reduce(
-    (acc, a) => {
-      const bal = Number(a.balance);
-      const key = a.currency as "IDR" | "MYR" | "USD" | "SGD";
-      if (!acc[key]) acc[key] = { asset: 0, debt: 0 };
-      if (a.type === "credit_card") acc[key].debt += bal;
-      else acc[key].asset += bal;
-      return acc;
-    },
-    {} as Record<string, { asset: number; debt: number }>
-  );
+  // Aggregate per (TileKind × Currency)
+  const tiles: Record<Currency, Record<TileKind, { total: number; count: number }>> = {
+    IDR: { asset: { total: 0, count: 0 }, liability: { total: 0, count: 0 }, investment: { total: 0, count: 0 } },
+    MYR: { asset: { total: 0, count: 0 }, liability: { total: 0, count: 0 }, investment: { total: 0, count: 0 } },
+    USD: { asset: { total: 0, count: 0 }, liability: { total: 0, count: 0 }, investment: { total: 0, count: 0 } },
+    SGD: { asset: { total: 0, count: 0 }, liability: { total: 0, count: 0 }, investment: { total: 0, count: 0 } },
+  };
+  for (const a of accounts) {
+    const cur = a.currency as Currency;
+    if (!tiles[cur]) continue;
+    if (a.type === "credit_card") {
+      tiles[cur].liability.total += Number(a.balance);
+      tiles[cur].liability.count += 1;
+    } else {
+      tiles[cur].asset.total += Number(a.balance);
+      tiles[cur].asset.count += 1;
+    }
+  }
+  for (const d of debts) {
+    const cur = d.currency as Currency;
+    if (!tiles[cur]) continue;
+    tiles[cur].liability.total += Number(d.remainingAmount);
+    tiles[cur].liability.count += 1;
+  }
+  for (const inv of investments) {
+    const cur = inv.currency as Currency;
+    if (!tiles[cur]) continue;
+    tiles[cur].investment.total += Number(inv.currentValue);
+    tiles[cur].investment.count += 1;
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div>
         <h1 className="text-2xl font-bold tracking-tight">{t("akun.title")}</h1>
-        <button className="btn-outline text-xs" onClick={() => setShowAdd(true)}>
-          <Plus className="h-3 w-3" /> {t("akun.addBtn")}
-        </button>
+        <p className="text-sm text-slate-600">{t("akun.tapToAdd")}</p>
       </div>
 
       {/* Balance screenshot OCR */}
@@ -166,19 +227,34 @@ export default function AkunPage() {
         />
       )}
 
-      {/* Totals */}
-      {Object.entries(totalByCurrency).map(([cur, { asset, debt }]) => (
-        <div key={cur} className="grid grid-cols-2 gap-3">
-          <div className="stat-tile">
-            <div className="text-[11px] uppercase tracking-wider text-emerald-600">{t("akun.asset")} {cur}</div>
-            <div className="mt-1 font-bold">{formatShort(asset, cur)}</div>
+      {/* Tile grid: 3-col per enabled currency. Tap = add of that kind+currency */}
+      <div className="space-y-2">
+        {enabledCurrencies.map((cur) => (
+          <div key={cur} className="grid grid-cols-3 gap-2">
+            <Tile
+              kind="asset"
+              currency={cur}
+              total={tiles[cur].asset.total}
+              count={tiles[cur].asset.count}
+              onClick={() => setTileAction({ kind: "asset", currency: cur })}
+            />
+            <Tile
+              kind="liability"
+              currency={cur}
+              total={tiles[cur].liability.total}
+              count={tiles[cur].liability.count}
+              onClick={() => setTileAction({ kind: "liability", currency: cur })}
+            />
+            <Tile
+              kind="investment"
+              currency={cur}
+              total={tiles[cur].investment.total}
+              count={tiles[cur].investment.count}
+              onClick={() => setTileAction({ kind: "investment", currency: cur })}
+            />
           </div>
-          <div className="stat-tile">
-            <div className="text-[11px] uppercase tracking-wider text-rose-600">{t("akun.debt")} {cur}</div>
-            <div className="mt-1 font-bold">{formatShort(debt, cur)}</div>
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {/* Accounts */}
       {loading ? (
@@ -232,9 +308,63 @@ export default function AkunPage() {
         />
       )}
 
-      {showAdd && <AddAccountSheet onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); load(); }} />}
+      {showAdd && (
+        <AddAccountSheet
+          onClose={() => {
+            setShowAdd(false);
+            setTileAction(null);
+          }}
+          onAdded={() => {
+            setShowAdd(false);
+            setTileAction(null);
+            load();
+          }}
+          presetCurrency={tileAction?.currency}
+          presetType={
+            tileAction?.kind === "liability"
+              ? "credit_card"
+              : tileAction?.kind === "asset"
+              ? "bank"
+              : undefined
+          }
+        />
+      )}
+
+      {/* When user taps Aset tile → open add account directly */}
+      {tileAction && !showAdd && tileAction.kind === "asset" && (
+        <AutoOpen onMount={() => setShowAdd(true)} />
+      )}
+      {/* When user taps Hutang tile → show chooser */}
+      {tileAction && tileAction.kind === "liability" && !showAdd && (
+        <LiabilityChooser
+          currency={tileAction.currency}
+          onPickCC={() => setShowAdd(true)}
+          onPickDebt={() => {
+            setTileAction(null);
+            window.location.href = "/wajib?tab=debt&new=1";
+          }}
+          onClose={() => setTileAction(null)}
+        />
+      )}
+      {/* When user taps Investasi tile → redirect to wajib for the form */}
+      {tileAction && tileAction.kind === "investment" && (
+        <AutoOpen
+          onMount={() => {
+            setTileAction(null);
+            window.location.href = "/wajib?tab=investment&new=1";
+          }}
+        />
+      )}
     </div>
   );
+}
+
+function AutoOpen({ onMount }: { onMount: () => void }) {
+  useEffect(() => {
+    onMount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
 }
 
 function BalanceApplyDialog({
@@ -302,17 +432,27 @@ function BalanceApplyDialog({
   );
 }
 
-function AddAccountSheet({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+function AddAccountSheet({
+  onClose,
+  onAdded,
+  presetCurrency,
+  presetType,
+}: {
+  onClose: () => void;
+  onAdded: () => void;
+  presetCurrency?: Currency;
+  presetType?: "bank" | "ewallet" | "cash" | "credit_card";
+}) {
   const { t } = useT();
   const toast = useToast();
   const [custom, setCustom] = useState({
     name: "",
-    type: "bank" as "bank" | "ewallet" | "cash" | "credit_card",
-    currency: "IDR" as "IDR" | "MYR" | "USD" | "SGD",
+    type: (presetType ?? "bank") as "bank" | "ewallet" | "cash" | "credit_card",
+    currency: (presetCurrency ?? "IDR") as Currency,
     balance: 0,
     creditLimit: 0,
-    emoji: "🏦",
-    color: "#ec4899",
+    emoji: presetType === "credit_card" ? "💳" : "🏦",
+    color: "#10b981",
   });
 
   async function addFromTemplate(tpl: (typeof ACCOUNT_TEMPLATES)[number]) {
@@ -371,10 +511,18 @@ function AddAccountSheet({ onClose, onAdded }: { onClose: () => void; onAdded: (
         </div>
         <div className="label mb-2">{t("akun.fromTemplate")}</div>
         <div className="flex flex-wrap gap-2 mb-4 max-h-40 overflow-y-auto">
-          {ACCOUNT_TEMPLATES.map((tpl) => (
+          {ACCOUNT_TEMPLATES.filter((tpl) => {
+            if (presetCurrency && tpl.currency !== presetCurrency) return false;
+            if (presetType === "credit_card" && tpl.type !== "credit_card") return false;
+            if (presetType && presetType !== "credit_card" && tpl.type === "credit_card") return false;
+            return true;
+          }).map((tpl) => (
             <button
               key={tpl.name}
-              onClick={() => addFromTemplate(tpl)}
+              type="button"
+              onClick={() =>
+                addFromTemplate({ ...tpl, currency: presetCurrency ?? tpl.currency })
+              }
               className="chip"
             >
               {tpl.emoji} {tpl.name}
@@ -568,6 +716,141 @@ function AccountEditSheet({
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+// ----- Tile + helpers -----
+function Tile({
+  kind,
+  currency,
+  total,
+  count,
+  onClick,
+}: {
+  kind: TileKind;
+  currency: Currency;
+  total: number;
+  count: number;
+  onClick: () => void;
+}) {
+  const accent =
+    kind === "asset"
+      ? "border-emerald-200 bg-emerald-50/60 text-emerald-700"
+      : kind === "liability"
+      ? "border-rose-200 bg-rose-50/60 text-rose-700"
+      : "border-amber-200 bg-amber-50/60 text-amber-700";
+  const labelKey =
+    kind === "asset" ? "akun.tileAsset" : kind === "liability" ? "akun.tileLiability" : "akun.tileInvestment";
+  return (
+    <TileButton onClick={onClick} accent={accent} labelKey={labelKey} currency={currency} total={total} count={count} />
+  );
+}
+
+function TileButton({
+  onClick,
+  accent,
+  labelKey,
+  currency,
+  total,
+  count,
+}: {
+  onClick: () => void;
+  accent: string;
+  labelKey: string;
+  currency: Currency;
+  total: number;
+  count: number;
+}) {
+  return <TileInner onClick={onClick} accent={accent} labelKey={labelKey} currency={currency} total={total} count={count} />;
+}
+
+function TileInner({
+  onClick,
+  accent,
+  labelKey,
+  currency,
+  total,
+  count,
+}: {
+  onClick: () => void;
+  accent: string;
+  labelKey: string;
+  currency: Currency;
+  total: number;
+  count: number;
+}) {
+  // useT hook here so each tile gets re-rendered correctly with locale changes
+  const { t } = useT();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`stat-tile border ${accent} text-left active:scale-[0.98] transition`}
+    >
+      <div className="text-[10px] font-semibold uppercase tracking-wider opacity-90">
+        {t(labelKey)} {currency}
+      </div>
+      <div className="mt-0.5 font-bold leading-tight text-slate-900">
+        {formatShort(total, currency)}
+      </div>
+      <div className="text-[10px] text-slate-500">
+        {count > 0 ? `${count} ${count === 1 ? t("akun.itemCount") : t("akun.itemCountPlural")}` : `+ ${t("akun.tapToAdd")}`}
+      </div>
+    </button>
+  );
+}
+
+// ----- Liability chooser modal: Kartu Kredit OR Cicilan -----
+function LiabilityChooser({
+  currency,
+  onPickCC,
+  onPickDebt,
+  onClose,
+}: {
+  currency: Currency;
+  onPickCC: () => void;
+  onPickDebt: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useT();
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-md space-y-3 rounded-3xl bg-white p-5 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <div className="text-lg font-bold">
+            {t("akun.liabilityChooserTitle")} {currency}
+          </div>
+          <button onClick={onClose} className="text-slate-400">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={onPickCC}
+          className="card flex w-full items-center gap-3 p-4 text-left active:scale-[0.99] hover:bg-rose-50/40"
+        >
+          <span className="text-2xl">💳</span>
+          <div className="flex-1">
+            <div className="text-sm font-semibold">{t("akun.liabilityCC")}</div>
+            <div className="text-[11px] text-slate-500">{t("akun.liabilityCCDesc")}</div>
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={onPickDebt}
+          className="card flex w-full items-center gap-3 p-4 text-left active:scale-[0.99] hover:bg-rose-50/40"
+        >
+          <span className="text-2xl">⛓️</span>
+          <div className="flex-1">
+            <div className="text-sm font-semibold">{t("akun.liabilityDebt")}</div>
+            <div className="text-[11px] text-slate-500">{t("akun.liabilityDebtDesc")}</div>
+          </div>
+        </button>
+      </div>
     </div>
   );
 }
